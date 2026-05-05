@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "573911339006",
+    "project_id": "cleanova-13d44",
+    "storage_bucket": "cleanova-13d44.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:573911339006:android:44ac92ad0b74aeeff3baaf",
+        "android_client_info": {
+          "package_name": "com.example.cleanova"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3X2I9xMsyRWSgOGfuYwELHeBzWUQj6Ag"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
