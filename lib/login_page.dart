@@ -17,18 +17,15 @@ class _LoginPageState extends State<LoginPage> {
   bool isHidden = true;
   bool remember = false;
 
-  
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
-  // login function
   Future<void> loginUser() async {
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
-
       print("Login success");
     } catch (e) {
       print("Error: $e");
@@ -38,16 +35,23 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF6A5AE0),
+      backgroundColor: Color(0xFFF1F8E9),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.only(top: 40),
+          padding: EdgeInsets.only(top: 80),
           child: Center(
             child: Container(
               margin: EdgeInsets.all(15),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(30),
                 color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 10,
+                    offset: Offset(0, 5),
+                  )
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -61,44 +65,27 @@ class _LoginPageState extends State<LoginPage> {
                               top: Radius.circular(30)),
                           gradient: LinearGradient(
                             colors: [
-                              Color(0xFF7F00FF),
-                              Color(0xFF00C6FF),
+                              Color(0xFF56AB2F),
+                              Color(0xFFA8E063),
                             ],
                           ),
                         ),
                       ),
-
-                      Positioned(
-                        bottom: 0,
-                        child: Container(
-                          width:
-                          MediaQuery.of(context).size.width - 30,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(60),
-                              topRight: Radius.circular(60),
-                            ),
-                          ),
-                        ),
-                      ),
-
                       Positioned.fill(
                         child: Column(
                           mainAxisAlignment:
                           MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.eco,
+                            Icon(Icons.cleaning_services,
                                 color: Colors.white, size: 55),
-                            SizedBox(height: 10),
+                            SizedBox(height: 8),
                             Text(
                               "CLEANOVA",
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 2,
-                                fontSize: 18,
+                                fontSize: 20,
                               ),
                             ),
                           ],
@@ -106,20 +93,18 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ],
                   ),
-
+                  SizedBox(height: 10),
                   Padding(
-                    padding: EdgeInsets.all(20),
+                    padding: EdgeInsets.fromLTRB(20, 10, 20, 20),
                     child: Column(
                       children: [
                         Text(
-                          "Welcome back !",
+                          "Welcome Back!",
                           style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 20),
-
-                        // email
                         TextField(
                           controller: emailController,
                           decoration: InputDecoration(
@@ -133,10 +118,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                         ),
-
                         SizedBox(height: 15),
-
-                        // password
                         TextField(
                           controller: passwordController,
                           obscureText: isHidden,
@@ -161,9 +143,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                         ),
-
                         SizedBox(height: 10),
-
                         Row(
                           mainAxisAlignment:
                           MainAxisAlignment.spaceBetween,
@@ -188,10 +168,7 @@ class _LoginPageState extends State<LoginPage> {
                             )
                           ],
                         ),
-
                         SizedBox(height: 10),
-
-                      //login button
                         GestureDetector(
                           onTap: loginUser,
                           child: Container(
@@ -201,22 +178,20 @@ class _LoginPageState extends State<LoginPage> {
                               borderRadius:
                               BorderRadius.circular(30),
                               border:
-                              Border.all(color: Colors.blue),
+                              Border.all(color: Colors.green),
                             ),
                             child: Center(
                               child: Text(
                                 "Login",
                                 style: TextStyle(
-                                  color: Colors.blue,
+                                  color: Colors.green,
                                   fontSize: 16,
                                 ),
                               ),
                             ),
                           ),
                         ),
-
                         SizedBox(height: 15),
-
                         Row(
                           mainAxisAlignment:
                           MainAxisAlignment.center,
@@ -225,7 +200,7 @@ class _LoginPageState extends State<LoginPage> {
                             Text(
                               "Register",
                               style:
-                              TextStyle(color: Colors.blue),
+                              TextStyle(color: Colors.green),
                             ),
                           ],
                         ),
@@ -238,18 +213,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget circleIcon(IconData icon, Color color) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 6),
-      padding: EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color.withOpacity(0.1),
-      ),
-      child: Icon(icon, color: color),
     );
   }
 }
