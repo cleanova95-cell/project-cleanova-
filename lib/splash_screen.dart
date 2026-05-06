@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'login_page.dart';
 import 'register_cleaner_page.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -29,7 +30,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     Timer(const Duration(seconds: 3), () {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const RegisterCleanerPage()),
+        MaterialPageRoute(builder: (context) => LoginPage()),
       );
     });
   }

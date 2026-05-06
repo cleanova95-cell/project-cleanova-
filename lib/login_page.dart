@@ -1,5 +1,7 @@
+import 'package:cleanova/Dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'register_cleaner_page.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -21,14 +23,98 @@ class _LoginPageState extends State<LoginPage> {
   TextEditingController passwordController = TextEditingController();
 
   Future<void> loginUser() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please fill in all fields")),
+      );
+      return;
+    }
+
+    if (!email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please enter a valid email")),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Password must be at least 6 characters")),
+      );
+      return;
+    }
+
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
+        email: email,
+        password: password,
       );
-      print("Login success");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Login success")),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = "Login failed";
+
+      if (e.code == 'user-not-found') {
+        message = "Email not registered";
+      } else if (e.code == 'wrong-password') {
+        message = "Wrong password";
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+  }
+
+  Future<void> resetPassword() async {
+    final email = emailController.text.trim();
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Enter your email first")),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+
+      print("RESET EMAIL SENT TO: $email");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Password reset email sent")),
+      );
+    } on FirebaseAuthException catch (e) {
+      print("ERROR CODE: ${e.code}");
+      print("ERROR MESSAGE: ${e.message}");
+
+      String message = "Error";
+
+      if (e.code == 'user-not-found') {
+        message = "Email not registered";
+      } else if (e.code == 'invalid-email') {
+        message = "Invalid email format";
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
     } catch (e) {
-      print("Error: $e");
+      print("UNKNOWN ERROR: $e");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Something went wrong")),
+      );
     }
   }
 
@@ -162,9 +248,14 @@ class _LoginPageState extends State<LoginPage> {
                                     TextStyle(fontSize: 12)),
                               ],
                             ),
-                            Text(
-                              "Forget password?",
-                              style: TextStyle(fontSize: 12),
+                            GestureDetector(
+                              onTap: resetPassword,
+                              child: Text(
+                                "Forgot password?",
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.green),
+                              ),
                             )
                           ],
                         ),
@@ -177,8 +268,8 @@ class _LoginPageState extends State<LoginPage> {
                             decoration: BoxDecoration(
                               borderRadius:
                               BorderRadius.circular(30),
-                              border:
-                              Border.all(color: Colors.green),
+                              border: Border.all(
+                                  color: Colors.green),
                             ),
                             child: Center(
                               child: Text(
@@ -197,10 +288,21 @@ class _LoginPageState extends State<LoginPage> {
                           MainAxisAlignment.center,
                           children: [
                             Text("New user? "),
-                            Text(
-                              "Register",
-                              style:
-                              TextStyle(color: Colors.green),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        RegisterCleanerPage(),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                "Register",
+                                style: TextStyle(
+                                    color: Colors.green),
+                              ),
                             ),
                           ],
                         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class RegisterCleanerPage extends StatefulWidget {
   const RegisterCleanerPage({super.key});
@@ -17,7 +18,7 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
 
-  void _register() {
+  void _register() async {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
@@ -53,15 +54,32 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
 
     setState(() => _isLoading = true);
 
-    // Simulate register
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Account created for $name!')),
-        );
+    try {
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Account created for $name!')),
+      );
+
+      Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      String message = "Register failed";
+
+      if (e.code == 'email-already-in-use') {
+        message = "Email already used";
+      } else if (e.code == 'weak-password') {
+        message = "Password too weak";
       }
-    });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+
+    setState(() => _isLoading = false);
   }
 
   @override
@@ -100,7 +118,6 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
                 ),
                 const SizedBox(height: 40),
 
-                // Name field
                 TextField(
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
@@ -114,7 +131,6 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Email field
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -128,7 +144,6 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Password field
                 TextField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
@@ -149,7 +164,6 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Confirm Password field
                 TextField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
@@ -171,7 +185,6 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
 
                 const SizedBox(height: 24),
 
-                // --- SIGN IN LINK ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -181,8 +194,7 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        // TODO: Add your navigation to Sign In page here
-                        debugPrint("Navigating to Sign In...");
+                        Navigator.pop(context);
                       },
                       child: const Text(
                         "Sign in",
@@ -197,7 +209,6 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
 
                 const SizedBox(height: 16),
 
-                // Register button
                 SizedBox(
                   height: 50,
                   child: ElevatedButton(
