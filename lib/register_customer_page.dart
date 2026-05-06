@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterCustomerPage extends StatefulWidget {
   const RegisterCustomerPage({super.key});
@@ -44,15 +46,18 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
     return RegExp(r'^\+?[0-9]{8,15}$').hasMatch(phone);
   }
 
-  void _register() {
+  Future<void> _register() async {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final phone = _phoneController.text.trim();
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
-    if (name.isEmpty || email.isEmpty || phone.isEmpty ||
-        password.isEmpty || confirmPassword.isEmpty) {
+    if (name.isEmpty ||
+        email.isEmpty ||
+        phone.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
       _showErrorSnackbar('Please fill in all fields');
       return;
     }
@@ -63,7 +68,7 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
     }
 
     if (!_isValidPhone(phone)) {
-      _showErrorSnackbar('Please enter a valid phone number (8–15 digits)');
+      _showErrorSnackbar('Please enter a valid phone number');
       return;
     }
 
@@ -77,7 +82,41 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
       return;
     }
 
-    // letak firebase logic sini nanti
+    try {
+      UserCredential userCredential =
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      String uid = userCredential.user!.uid;
+
+      await FirebaseFirestore.instance
+          .collection('customers')
+          .doc(uid)
+          .set({
+        'full_name': name,
+        'email': email,
+        'phone': phone,
+        'created_at': Timestamp.now(),
+        'updated_at': Timestamp.now(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Account created successfully')),
+      );
+
+      Navigator.pop(context);
+
+    } on FirebaseAuthException catch (e) {
+      String message = 'Registration failed';
+
+      if (e.code == 'email-already-in-use') {
+        message = 'Email already registered';
+      }
+
+      _showErrorSnackbar(message);
+    }
   }
 
   InputDecoration _fieldDecoration({
@@ -122,13 +161,19 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.person_outline,
-                    size: 64, color: Color(0xFF56AB2F)),
+                const Icon(
+                  Icons.person_outline,
+                  size: 64,
+                  color: Color(0xFF56AB2F),
+                ),
                 const SizedBox(height: 12),
                 const Text(
                   'Create Customer Account',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 const Text(
@@ -138,7 +183,6 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                 ),
                 const SizedBox(height: 32),
 
-                // Full Name
                 TextField(
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
@@ -147,9 +191,9 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                     prefixIcon: Icons.person_outline,
                   ),
                 ),
+
                 const SizedBox(height: 14),
 
-                // Email
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -158,9 +202,9 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                     prefixIcon: Icons.email_outlined,
                   ),
                 ),
+
                 const SizedBox(height: 14),
 
-                // Phone
                 TextField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
@@ -169,9 +213,9 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                     prefixIcon: Icons.phone_outlined,
                   ),
                 ),
+
                 const SizedBox(height: 14),
 
-                // Password
                 TextField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
@@ -185,14 +229,17 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                             : Icons.visibility,
                         color: Colors.grey,
                       ),
-                      onPressed: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 14),
 
-                // Confirm Password
                 TextField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
@@ -206,20 +253,27 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                             : Icons.visibility,
                         color: Colors.grey,
                       ),
-                      onPressed: () => setState(() =>
-                      _obscureConfirmPassword = !_obscureConfirmPassword),
+                      onPressed: () {
+                        setState(() {
+                          _obscureConfirmPassword =
+                          !_obscureConfirmPassword;
+                        });
+                      },
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 28),
 
-                // Register Button
                 SizedBox(
                   height: 50,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF56AB2F), Color(0xFFA8E063)],
+                        colors: [
+                          Color(0xFF56AB2F),
+                          Color(0xFFA8E063),
+                        ],
                       ),
                       borderRadius: BorderRadius.circular(30),
                     ),
@@ -233,21 +287,25 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
-                      child: const Text('Create Account',
-                          style: TextStyle(fontSize: 16)),
+                      child: const Text(
+                        'Create Account',
+                        style: TextStyle(fontSize: 16),
+                      ),
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 16),
 
-                // Back to login
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text('Already have an account? '),
                     GestureDetector(
                       onTap: () => Navigator.popUntil(
-                          context, (route) => route.isFirst),
+                        context,
+                            (route) => route.isFirst,
+                      ),
                       child: const Text(
                         'Login',
                         style: TextStyle(
@@ -258,6 +316,7 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 24),
               ],
             ),
