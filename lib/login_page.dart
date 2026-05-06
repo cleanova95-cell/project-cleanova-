@@ -1,16 +1,11 @@
 import 'package:cleanova/Dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'register_cleaner_page.dart';
-
-void main() {
-  runApp(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: LoginPage(),
-  ));
-}
+import 'register_selection_page.dart';
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
   _LoginPageState createState() => _LoginPageState();
 }
@@ -28,21 +23,26 @@ class _LoginPageState extends State<LoginPage> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please fill in all fields")),
+        SnackBar(content: Text("Please fill in all fields"),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
 
     if (!email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter a valid email")),
+        SnackBar(content: Text("Please enter a valid email"),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
 
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Password must be at least 6 characters")),
+        SnackBar(content: Text("Password must be at least 6 characters"),
+          backgroundColor: Colors.red,),
       );
       return;
     }
@@ -54,7 +54,9 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login success")),
+        SnackBar(content: Text("Login success"),
+          backgroundColor: Colors.green,
+        ),
       );
 
       Navigator.pushReplacement(
@@ -81,7 +83,9 @@ class _LoginPageState extends State<LoginPage> {
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Enter your email first")),
+        SnackBar(content: Text("Enter your email first"),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -92,7 +96,8 @@ class _LoginPageState extends State<LoginPage> {
       print("RESET EMAIL SENT TO: $email");
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Password reset email sent")),
+        SnackBar(content: Text("Password reset email sent"),
+          backgroundColor: Colors.green,),
       );
     } on FirebaseAuthException catch (e) {
       print("ERROR CODE: ${e.code}");
@@ -113,7 +118,8 @@ class _LoginPageState extends State<LoginPage> {
       print("UNKNOWN ERROR: $e");
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Something went wrong")),
+        SnackBar(content: Text("Something went wrong"),
+          backgroundColor: Colors.green,),
       );
     }
   }
@@ -133,7 +139,7 @@ class _LoginPageState extends State<LoginPage> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 10,
                     offset: Offset(0, 5),
                   )
@@ -159,8 +165,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       Positioned.fill(
                         child: Column(
-                          mainAxisAlignment:
-                          MainAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.cleaning_services,
                                 color: Colors.white, size: 55),
@@ -290,11 +295,13 @@ class _LoginPageState extends State<LoginPage> {
                             Text("New user? "),
                             GestureDetector(
                               onTap: () {
+                                // ← only change: goes to selection page
+                                // instead of directly to RegisterCleanerPage
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        RegisterCleanerPage(),
+                                        RegisterSelectionPage(),
                                   ),
                                 );
                               },

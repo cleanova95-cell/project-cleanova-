@@ -1,101 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
-class RegisterCleanerPage extends StatefulWidget {
-  const RegisterCleanerPage({super.key});
+class RegisterCustomerPage extends StatefulWidget {
+  const RegisterCustomerPage({super.key});
 
   @override
-  State<RegisterCleanerPage> createState() => _RegisterCleanerPageState();
+  State<RegisterCustomerPage> createState() => _RegisterCustomerPageState();
 }
 
-class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
+class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _isLoading = false;
-
-  void _register() async {
-    final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-    final confirmPassword = _confirmPasswordController.text;
-
-    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all fields'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (!email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a valid email'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password must be at least 6 characters'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Passwords do not match'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Account created for $name!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      Navigator.pop(context);
-    } on FirebaseAuthException catch (e) {
-      String message = "Register failed";
-
-      if (e.code == 'email-already-in-use') {
-        message = "Email already used";
-      } else if (e.code == 'weak-password') {
-        message = "Password too weak";
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-    }
-
-    setState(() => _isLoading = false);
-  }
 
   @override
   void dispose() {
@@ -103,7 +23,61 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _phoneController.dispose();
     super.dispose();
+  }
+
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
+  bool _isValidPhone(String phone) {
+    return RegExp(r'^\+?[0-9]{8,15}$').hasMatch(phone);
+  }
+
+  void _register() {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (name.isEmpty || email.isEmpty || phone.isEmpty ||
+        password.isEmpty || confirmPassword.isEmpty) {
+      _showErrorSnackbar('Please fill in all fields');
+      return;
+    }
+
+    if (!_isValidEmail(email)) {
+      _showErrorSnackbar('Please enter a valid email');
+      return;
+    }
+
+    if (!_isValidPhone(phone)) {
+      _showErrorSnackbar('Please enter a valid phone number (8–15 digits)');
+      return;
+    }
+
+    if (password.length < 6) {
+      _showErrorSnackbar('Password must be at least 6 characters');
+      return;
+    }
+
+    if (password != confirmPassword) {
+      _showErrorSnackbar('Passwords do not match');
+      return;
+    }
+
+    // letak firebase logic sini nanti
   }
 
   InputDecoration _fieldDecoration({
@@ -148,17 +122,17 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.cleaning_services_outlined,
+                const Icon(Icons.person_outline,
                     size: 64, color: Color(0xFF56AB2F)),
                 const SizedBox(height: 12),
                 const Text(
-                  'Join Cleanova',
+                  'Create Customer Account',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Fill in your details to become a cleaner',
+                  'Fill in your details to get started',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 13, color: Colors.grey),
                 ),
@@ -182,6 +156,17 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
                   decoration: _fieldDecoration(
                     label: 'Email',
                     prefixIcon: Icons.email_outlined,
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Phone
+                TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: _fieldDecoration(
+                    label: 'Phone Number',
+                    prefixIcon: Icons.phone_outlined,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -239,7 +224,7 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
                       borderRadius: BorderRadius.circular(30),
                     ),
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _register,
+                      onPressed: _register,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
@@ -248,14 +233,7 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2),
-                      )
-                          : const Text('Create Account',
+                      child: const Text('Create Account',
                           style: TextStyle(fontSize: 16)),
                     ),
                   ),
@@ -268,8 +246,8 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
                   children: [
                     const Text('Already have an account? '),
                     GestureDetector(
-                      onTap: () =>
-                          Navigator.popUntil(context, (route) => route.isFirst),
+                      onTap: () => Navigator.popUntil(
+                          context, (route) => route.isFirst),
                       child: const Text(
                         'Login',
                         style: TextStyle(
@@ -288,12 +266,4 @@ class _RegisterCleanerPageState extends State<RegisterCleanerPage> {
       ),
     );
   }
-}
-
-@pragma('flutter_widget_preview')
-Widget previewRegisterPage() {
-  return const MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: RegisterCleanerPage(),
-  );
 }
