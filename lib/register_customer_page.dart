@@ -92,23 +92,27 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
       String uid = userCredential.user!.uid;
 
       await FirebaseFirestore.instance
-          .collection('customers')
+          .collection('users')
           .doc(uid)
           .set({
         'full_name': name,
         'email': email,
         'phone': phone,
+        'role': 'customer',
         'created_at': Timestamp.now(),
         'updated_at': Timestamp.now(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Account created successfully')),
+        const SnackBar(
+          content: Text('Account created successfully'),
+        ),
       );
 
       Navigator.pop(context);
 
     } on FirebaseAuthException catch (e) {
+
       String message = 'Registration failed';
 
       if (e.code == 'email-already-in-use') {
@@ -126,18 +130,26 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
   }) {
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(prefixIcon, color: const Color(0xFF56AB2F)),
+      prefixIcon: Icon(
+        prefixIcon,
+        color: const Color(0xFF56AB2F),
+      ),
       suffixIcon: suffixIcon,
       filled: true,
       fillColor: const Color(0xFFF2F2F2),
-      labelStyle: const TextStyle(color: Colors.grey),
+      labelStyle: const TextStyle(
+        color: Colors.grey,
+      ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30),
         borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30),
-        borderSide: const BorderSide(color: Color(0xFF56AB2F), width: 1.5),
+        borderSide: const BorderSide(
+          color: Color(0xFF56AB2F),
+          width: 1.5,
+        ),
       ),
     );
   }
@@ -146,27 +158,37 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F8E9),
+
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF56AB2F)),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Color(0xFF56AB2F),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
+
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 32),
+
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+
                 const Icon(
                   Icons.person_outline,
                   size: 64,
                   color: Color(0xFF56AB2F),
                 ),
+
                 const SizedBox(height: 12),
+
                 const Text(
                   'Create Customer Account',
                   textAlign: TextAlign.center,
@@ -175,12 +197,18 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+
                 const SizedBox(height: 6),
+
                 const Text(
                   'Fill in your details to get started',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                  ),
                 ),
+
                 const SizedBox(height: 32),
 
                 TextField(
@@ -222,6 +250,7 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                   decoration: _fieldDecoration(
                     label: 'Password',
                     prefixIcon: Icons.lock_outline,
+
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -229,6 +258,7 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                             : Icons.visibility,
                         color: Colors.grey,
                       ),
+
                       onPressed: () {
                         setState(() {
                           _obscurePassword = !_obscurePassword;
@@ -243,9 +273,11 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                 TextField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
+
                   decoration: _fieldDecoration(
                     label: 'Confirm Password',
                     prefixIcon: Icons.lock_outline,
+
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirmPassword
@@ -253,6 +285,7 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                             : Icons.visibility,
                         color: Colors.grey,
                       ),
+
                       onPressed: () {
                         setState(() {
                           _obscureConfirmPassword =
@@ -267,6 +300,7 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
 
                 SizedBox(
                   height: 50,
+
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
@@ -275,21 +309,28 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                           Color(0xFFA8E063),
                         ],
                       ),
+
                       borderRadius: BorderRadius.circular(30),
                     ),
+
                     child: ElevatedButton(
                       onPressed: _register,
+
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
                         foregroundColor: Colors.white,
+
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
+
                       child: const Text(
                         'Create Account',
-                        style: TextStyle(fontSize: 16),
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),
@@ -300,12 +341,17 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('Already have an account? '),
+
+                    const Text(
+                      'Already have an account? ',
+                    ),
+
                     GestureDetector(
                       onTap: () => Navigator.popUntil(
                         context,
                             (route) => route.isFirst,
                       ),
+
                       child: const Text(
                         'Login',
                         style: TextStyle(
@@ -314,10 +360,12 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                         ),
                       ),
                     ),
+
                   ],
                 ),
 
                 const SizedBox(height: 24),
+
               ],
             ),
           ),
