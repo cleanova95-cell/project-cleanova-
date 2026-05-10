@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'login_page.dart';
 import 'booking_page.dart';
 import 'BookingHistoryPage.dart';
+import 'customer_profile_page.dart';
 
 class CustomerDashboard extends StatefulWidget {
   const CustomerDashboard({super.key});
@@ -22,25 +23,78 @@ class _CustomerDashboardState
     const HomePage(),
     const BookingPage(),
     const BookingHistoryPage(),
-    const ProfilePage(),
+    const CustomerProfilePage(),
 
   ];
 
   Future<void> logoutUser() async {
 
-    await FirebaseAuth.instance.signOut();
-
-    Navigator.pushAndRemoveUntil(
-
-      context,
-
-      MaterialPageRoute(
-        builder: (context) =>
-        const LoginPage(),
-      ),
-
-          (route) => false,
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.logout, color: Color(0xFF43A047)),
+              SizedBox(width: 10),
+              Text(
+                'Log Out',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Are you sure you want to log out?',
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF43A047),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Log Out',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
+
+    if (confirmed == true) {
+      await FirebaseAuth.instance.signOut();
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginPage(),
+        ),
+            (route) => false,
+      );
+    }
   }
 
   @override
@@ -58,15 +112,15 @@ class _CustomerDashboardState
         elevation: 0,
         centerTitle: true,
 
-        leading: IconButton(
-
-          icon: const Icon(
-            Icons.logout,
-            color: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.logout,
+              color: Colors.white,
+            ),
+            onPressed: logoutUser,
           ),
-
-          onPressed: logoutUser,
-        ),
+        ],
 
         flexibleSpace: Container(
 
@@ -535,27 +589,6 @@ class HomePage extends StatelessWidget {
           ),
 
         ],
-      ),
-    );
-  }
-}
-
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-
-    return const Center(
-
-      child: Text(
-
-        'Profile Page',
-
-        style: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
       ),
     );
   }

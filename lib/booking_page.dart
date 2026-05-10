@@ -184,6 +184,8 @@ class _BookingPageState extends State<BookingPage> {
             serviceCard(
               'House Cleaning',
               Icons.home,
+              'House Cleaning',
+              'A standard cleaning to keep your home fresh and tidy. Includes:\n\n• Sweeping & mopping all floors\n• Wiping down surfaces & tables\n• Bathroom cleaning (sink, toilet, shower)\n• Kitchen wipe-down (counters, stovetop, sink)\n• Emptying rubbish bins\n• Vacuuming carpets & rugs\n\nPerfect for regular upkeep of your home.',
             ),
 
             const SizedBox(height: 15),
@@ -191,6 +193,8 @@ class _BookingPageState extends State<BookingPage> {
             serviceCard(
               'Deep Cleaning',
               Icons.cleaning_services,
+              'Deep Cleaning',
+              'A thorough, top-to-bottom clean — everything in House Cleaning, plus:\n\n• Inside oven, fridge & microwave\n• Scrubbing tile grout & bathroom corners\n• Cleaning window tracks & sills\n• Inside kitchen cabinets & drawers\n• Removing cobwebs from ceilings & corners\n• Disinfecting high-touch surfaces (switches, door handles)\n• Behind and under furniture\n\nIdeal for move-in/move-out or a seasonal deep clean.',
             ),
 
             const SizedBox(height: 15),
@@ -198,16 +202,143 @@ class _BookingPageState extends State<BookingPage> {
             serviceCard(
               'Office Cleaning',
               Icons.business,
+              'Office Cleaning',
+              'Professional cleaning for your workplace. Includes:\n\n• Wiping desks, workstations & monitors\n• Cleaning keyboards, phones & office equipment\n• Vacuuming & mopping floors\n• Restroom cleaning & sanitising\n• Pantry & kitchen area cleaning\n• Glass partition & window cleaning\n• Disinfecting high-touch areas (door handles, buttons, railings)\n• Emptying all bins\n\nKeeps your workspace clean, hygienic and professional.',
             ),
 
             const SizedBox(height: 30),
 
-            const Text(
-              'Select Size',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                const Text(
+                  'Select Size',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () {
+                    final bool isOffice = selectedService == 'Office Cleaning';
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        title: Row(
+                          children: [
+                            Icon(
+                              isOffice ? Icons.business_outlined : Icons.home_outlined,
+                              color: const Color(0xFF43A047),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              isOffice ? 'Office Size Guide' : 'Home Size Guide',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        content: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                isOffice
+                                    ? 'Not sure what size your office is? Use this guide:'
+                                    : 'Not sure what size your home is? Use this guide:',
+                                style: const TextStyle(color: Colors.grey, fontSize: 13),
+                              ),
+                              const SizedBox(height: 16),
+                              if (isOffice) ...[
+                                const _SizeGuideRow(
+                                  label: '🏢 Small Office',
+                                  sqm: 'Up to 50 m² (up to ~540 sq ft)',
+                                  desc: 'Small shop lot, single-room office, freelancer studio, or 1–5 workstations',
+                                  color: Color(0xFFE8F5E9),
+                                ),
+                                const SizedBox(height: 10),
+                                const _SizeGuideRow(
+                                  label: '🏬 Medium Office',
+                                  sqm: '50 – 150 m² (~540 – 1,600 sq ft)',
+                                  desc: 'Small company office, co-working space, clinic, or 5–20 workstations',
+                                  color: Color(0xFFC8E6C9),
+                                ),
+                                const SizedBox(height: 10),
+                                const _SizeGuideRow(
+                                  label: '🏙️ Large Office',
+                                  sqm: '150 m² and above (~1,600 sq ft+)',
+                                  desc: 'Full-floor corporate office, call centre, large co-working space, or 20+ workstations',
+                                  color: Color(0xFFA5D6A7),
+                                ),
+                              ] else ...[
+                                const _SizeGuideRow(
+                                  label: '🏠 Small',
+                                  sqm: 'Up to 100 m² (up to ~1,100 sq ft)',
+                                  desc: 'Studio, flat, apartment, or 1–2 bedroom condo',
+                                  color: Color(0xFFE8F5E9),
+                                ),
+                                const SizedBox(height: 10),
+                                const _SizeGuideRow(
+                                  label: '🏡 Medium',
+                                  sqm: '100 – 200 m² (~1,100 – 2,150 sq ft)',
+                                  desc: 'Single or double-storey terrace house, 3–4 bedrooms',
+                                  color: Color(0xFFC8E6C9),
+                                ),
+                                const SizedBox(height: 10),
+                                const _SizeGuideRow(
+                                  label: '🏘️ Large',
+                                  sqm: '200 m² and above (~2,150 sq ft+)',
+                                  desc: 'Semi-D, bungalow, superlink house, 4+ bedrooms',
+                                  color: Color(0xFFA5D6A7),
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+                              const Text(
+                                '💡 Tip: If you are unsure, choose the next size up for a more thorough clean.',
+                                style: TextStyle(
+                                  color: Color(0xFF43A047),
+                                  fontSize: 13,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        actions: [
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF43A047),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Got it!',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    child: const Icon(
+                      Icons.info_outline,
+                      color: Color(0xFF43A047),
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: 15),
@@ -421,6 +552,8 @@ class _BookingPageState extends State<BookingPage> {
   Widget serviceCard(
       String title,
       IconData icon,
+      String infoTitle,
+      String infoText,
       ) {
 
     bool isSelected =
@@ -487,11 +620,71 @@ class _BookingPageState extends State<BookingPage> {
               ),
             ),
 
-            if (isSelected)
+            GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    title: Row(
+                      children: [
+                        Icon(icon, color: const Color(0xFF43A047)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            infoTitle,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    content: SingleChildScrollView(
+                      child: Text(
+                        infoText,
+                        style: const TextStyle(fontSize: 15, height: 1.5),
+                      ),
+                    ),
+                    actions: [
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF43A047),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Got it!',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: const Icon(
+                  Icons.info_outline,
+                  color: Color(0xFF43A047),
+                  size: 20,
+                ),
+              ),
+            ),
+
+            if (isSelected) ...[
+              const SizedBox(width: 8),
               const Icon(
                 Icons.check_circle,
                 color: Colors.green,
               ),
+            ],
 
           ],
         ),
@@ -563,6 +756,68 @@ class _BookingPageState extends State<BookingPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SizeGuideRow extends StatelessWidget {
+  final String label;
+  final String sqm;
+  final String desc;
+  final Color color;
+
+  const _SizeGuideRow({
+    required this.label,
+    required this.sqm,
+    required this.desc,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Color(0xFF2E7D32),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  sqm,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: Color(0xFF43A047),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  desc,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
