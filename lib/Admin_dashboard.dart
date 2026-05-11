@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'login_page.dart';
+import 'booking_management_page.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -16,9 +17,14 @@ class _AdminDashboardState
   int currentIndex = 0;
 
   final List pages = [
+
     const AdminHomePage(),
+
     const UsersPage(),
+
+
     const BookingManagementPage(),
+
     const AdminProfilePage(),
   ];
 
@@ -27,19 +33,23 @@ class _AdminDashboardState
 
     return Scaffold(
 
-      backgroundColor: const Color(0xFFF1FFF3),
+      backgroundColor:
+      const Color(0xFFF1FFF3),
 
       appBar: AppBar(
+
         elevation: 0,
         centerTitle: true,
 
         flexibleSpace: Container(
+
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
                 Color(0xFF43A047),
                 Color(0xFF66BB6A),
               ],
+
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -55,9 +65,11 @@ class _AdminDashboardState
 
           onPressed: () async {
 
-            await FirebaseAuth.instance.signOut();
+            await FirebaseAuth.instance
+                .signOut();
 
             Navigator.pushAndRemoveUntil(
+
               context,
 
               MaterialPageRoute(
@@ -71,7 +83,9 @@ class _AdminDashboardState
         ),
 
         title: const Text(
+
           'Admin Dashboard',
+
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -83,14 +97,22 @@ class _AdminDashboardState
         child: pages[currentIndex],
       ),
 
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar:
+      BottomNavigationBar(
 
         currentIndex: currentIndex,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        backgroundColor: Colors.white,
+
+        selectedItemColor:
+        Colors.green,
+
+        unselectedItemColor:
+        Colors.grey,
+
+        backgroundColor:
+        Colors.white,
 
         onTap: (index) {
+
           setState(() {
             currentIndex = index;
           });
@@ -124,7 +146,10 @@ class _AdminDashboardState
   }
 }
 
-class AdminHomePage extends StatelessWidget {
+
+class AdminHomePage
+    extends StatelessWidget {
+
   const AdminHomePage({super.key});
 
   @override
@@ -135,22 +160,28 @@ class AdminHomePage extends StatelessWidget {
       padding: const EdgeInsets.all(20),
 
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+        CrossAxisAlignment.start,
 
         children: [
 
           const Text(
+
             'Welcome Admin 👋',
+
             style: TextStyle(
               fontSize: 28,
-              fontWeight: FontWeight.bold,
+              fontWeight:
+              FontWeight.bold,
             ),
           ),
 
           const SizedBox(height: 8),
 
           const Text(
+
             'Manage customers, cleaners and bookings',
+
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey,
@@ -160,58 +191,86 @@ class AdminHomePage extends StatelessWidget {
           const SizedBox(height: 25),
 
           Container(
-            padding: const EdgeInsets.all(25),
+
+            padding:
+            const EdgeInsets.all(25),
 
             decoration: BoxDecoration(
 
-              gradient: const LinearGradient(
+              gradient:
+              const LinearGradient(
+
                 colors: [
                   Color(0xFF43A047),
                   Color(0xFF66BB6A),
                 ],
+
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
 
-              borderRadius: BorderRadius.circular(25),
+              borderRadius:
+              BorderRadius.circular(25),
 
               boxShadow: [
+
                 BoxShadow(
-                  color: Colors.green.withValues(alpha: 0.3),
+                  color:
+                  Colors.green.withValues(
+                    alpha: 0.3,
+                  ),
+
                   blurRadius: 10,
-                  offset: const Offset(0, 5),
+
+                  offset:
+                  const Offset(0, 5),
                 ),
               ],
             ),
 
             child: const Row(
+
               mainAxisAlignment:
-              MainAxisAlignment.spaceBetween,
+              MainAxisAlignment
+                  .spaceBetween,
 
               children: [
 
                 Expanded(
+
                   child: Column(
+
                     crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                    CrossAxisAlignment
+                        .start,
 
                     children: [
 
                       Text(
+
                         'System Overview',
+
                         style: TextStyle(
-                          color: Colors.white,
+                          color:
+                          Colors.white,
+
                           fontSize: 24,
-                          fontWeight: FontWeight.bold,
+
+                          fontWeight:
+                          FontWeight.bold,
                         ),
                       ),
 
                       SizedBox(height: 10),
 
                       Text(
+
                         'Track all bookings and cleaners activity.',
+
                         style: TextStyle(
-                          color: Colors.white,
+                          color:
+                          Colors.white,
+
                           fontSize: 15,
                         ),
                       ),
@@ -223,8 +282,11 @@ class AdminHomePage extends StatelessWidget {
                 SizedBox(width: 10),
 
                 Icon(
-                  Icons.admin_panel_settings,
+                  Icons
+                      .admin_panel_settings,
+
                   color: Colors.white,
+
                   size: 65,
                 ),
 
@@ -235,18 +297,23 @@ class AdminHomePage extends StatelessWidget {
           const SizedBox(height: 30),
 
           const Text(
+
             'Quick Overview',
+
             style: TextStyle(
               fontSize: 22,
-              fontWeight: FontWeight.bold,
+              fontWeight:
+              FontWeight.bold,
             ),
           ),
 
           const SizedBox(height: 20),
 
           Row(
+
             mainAxisAlignment:
-            MainAxisAlignment.spaceBetween,
+            MainAxisAlignment
+                .spaceBetween,
 
             children: [
 
@@ -270,8 +337,10 @@ class AdminHomePage extends StatelessWidget {
           const SizedBox(height: 15),
 
           Row(
+
             mainAxisAlignment:
-            MainAxisAlignment.spaceBetween,
+            MainAxisAlignment
+                .spaceBetween,
 
             children: [
 
@@ -295,10 +364,13 @@ class AdminHomePage extends StatelessWidget {
           const SizedBox(height: 30),
 
           const Text(
+
             'Recent Activities',
+
             style: TextStyle(
               fontSize: 22,
-              fontWeight: FontWeight.bold,
+              fontWeight:
+              FontWeight.bold,
             ),
           ),
 
@@ -332,17 +404,27 @@ class AdminHomePage extends StatelessWidget {
 
     return Container(
 
-      width: MediaQuery.of(context).size.width * 0.42,
+      width:
+      MediaQuery.of(context)
+          .size
+          .width *
+          0.42,
 
-      padding: const EdgeInsets.all(18),
+      padding:
+      const EdgeInsets.all(18),
 
       decoration: BoxDecoration(
+
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+
+        borderRadius:
+        BorderRadius.circular(20),
 
         boxShadow: [
+
           BoxShadow(
-            color: Colors.grey.shade200,
+            color:
+            Colors.grey.shade200,
             blurRadius: 8,
           ),
         ],
@@ -360,17 +442,22 @@ class AdminHomePage extends StatelessWidget {
           const SizedBox(height: 12),
 
           Text(
+
             value,
+
             style: const TextStyle(
               fontSize: 22,
-              fontWeight: FontWeight.bold,
+              fontWeight:
+              FontWeight.bold,
             ),
           ),
 
           const SizedBox(height: 5),
 
           Text(
+
             title,
+
             style: const TextStyle(
               color: Colors.grey,
             ),
@@ -389,15 +476,21 @@ class AdminHomePage extends StatelessWidget {
 
     return Container(
 
-      padding: const EdgeInsets.all(18),
+      padding:
+      const EdgeInsets.all(18),
 
       decoration: BoxDecoration(
+
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+
+        borderRadius:
+        BorderRadius.circular(20),
 
         boxShadow: [
+
           BoxShadow(
-            color: Colors.grey.shade200,
+            color:
+            Colors.grey.shade200,
             blurRadius: 8,
           ),
         ],
@@ -407,11 +500,19 @@ class AdminHomePage extends StatelessWidget {
         children: [
 
           Container(
-            padding: const EdgeInsets.all(15),
+
+            padding:
+            const EdgeInsets.all(15),
 
             decoration: BoxDecoration(
-              color: Colors.green.shade100,
-              borderRadius: BorderRadius.circular(15),
+
+              color:
+              Colors.green.shade100,
+
+              borderRadius:
+              BorderRadius.circular(
+                15,
+              ),
             ),
 
             child: Icon(
@@ -424,24 +525,32 @@ class AdminHomePage extends StatelessWidget {
           const SizedBox(width: 15),
 
           Expanded(
+
             child: Column(
+
               crossAxisAlignment:
-              CrossAxisAlignment.start,
+              CrossAxisAlignment
+                  .start,
 
               children: [
 
                 Text(
+
                   title,
+
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight:
+                    FontWeight.bold,
                   ),
                 ),
 
                 const SizedBox(height: 5),
 
                 Text(
+
                   subtitle,
+
                   style: const TextStyle(
                     color: Colors.grey,
                   ),
@@ -457,54 +566,53 @@ class AdminHomePage extends StatelessWidget {
   }
 }
 
-class UsersPage extends StatelessWidget {
+
+class UsersPage
+    extends StatelessWidget {
+
   const UsersPage({super.key});
 
   @override
   Widget build(BuildContext context) {
 
     return const Center(
+
       child: Text(
+
         'Manage Customers & Cleaners',
+
         style: TextStyle(
           fontSize: 24,
-          fontWeight: FontWeight.bold,
+          fontWeight:
+          FontWeight.bold,
         ),
       ),
     );
   }
 }
 
-class BookingManagementPage extends StatelessWidget {
-  const BookingManagementPage({super.key});
+// ===============================
+// ADMIN PROFILE PAGE
+// ===============================
 
-  @override
-  Widget build(BuildContext context) {
+class AdminProfilePage
+    extends StatelessWidget {
 
-    return const Center(
-      child: Text(
-        'Booking Management',
-        style: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-}
-
-class AdminProfilePage extends StatelessWidget {
   const AdminProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
 
     return const Center(
+
       child: Text(
+
         'Admin Profile',
+
         style: TextStyle(
           fontSize: 24,
-          fontWeight: FontWeight.bold,
+          fontWeight:
+          FontWeight.bold,
         ),
       ),
     );
