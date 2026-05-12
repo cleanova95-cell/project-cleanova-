@@ -230,10 +230,16 @@ class BookingDetailsPage extends StatelessWidget {
               booking['email'],
             ),
 
-            // CLEANER NAME
-            if (booking.data()
-                .toString()
-                .contains('cleanerName')) ...[
+            // =========================
+            // ASSIGNED CLEANER
+            // ONLY SHOW IF ASSIGNED
+            // OR COMPLETED
+            // =========================
+
+            if (
+            booking['status'] == 'Assigned' ||
+                booking['status'] == 'Completed'
+            ) ...[
 
               const SizedBox(height: 18),
 
@@ -299,7 +305,11 @@ class BookingDetailsPage extends StatelessWidget {
               ),
             ),
 
-            // CANCEL BUTTON ONLY FOR PENDING
+            // =========================
+            // CANCEL BUTTON
+            // ONLY FOR PENDING
+            // =========================
+
             if (isPending) ...[
 
               const SizedBox(height: 35),

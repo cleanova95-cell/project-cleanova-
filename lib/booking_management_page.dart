@@ -27,6 +27,8 @@ class _BookingManagementPageState
 
         children: [
 
+          // ================= HEADER =================
+
           Container(
 
             width: double.infinity,
@@ -90,6 +92,8 @@ class _BookingManagementPageState
           ),
 
           const SizedBox(height: 15),
+
+          // ================= BOOKING LIST =================
 
           Expanded(
 
@@ -245,6 +249,8 @@ class _BookingManagementPageState
 
                           children: [
 
+                            // ================= TOP =================
+
                             Row(
                               mainAxisAlignment:
                               MainAxisAlignment
@@ -310,6 +316,8 @@ class _BookingManagementPageState
                               height: 18,
                             ),
 
+                            // ================= INFO =================
+
                             bookingInfo(
                               Icons
                                   .cleaning_services,
@@ -346,8 +354,12 @@ class _BookingManagementPageState
                               height: 20,
                             ),
 
+                            // ================= BUTTONS =================
+
                             Row(
                               children: [
+
+                                // UPDATE BUTTON
 
                                 Expanded(
 
@@ -412,6 +424,8 @@ class _BookingManagementPageState
                                   width: 10,
                                 ),
 
+                                // ASSIGN BUTTON
+
                                 Expanded(
 
                                   child:
@@ -470,67 +484,6 @@ class _BookingManagementPageState
                                   ),
                                 ),
 
-                                const SizedBox(
-                                  width: 10,
-                                ),
-
-                                Expanded(
-
-                                  child:
-                                  ElevatedButton
-                                      .icon(
-
-                                    style:
-                                    ElevatedButton
-                                        .styleFrom(
-                                      backgroundColor:
-                                      Colors.red,
-
-                                      padding:
-                                      const EdgeInsets
-                                          .symmetric(
-                                        vertical:
-                                        14,
-                                      ),
-
-                                      shape:
-                                      RoundedRectangleBorder(
-                                        borderRadius:
-                                        BorderRadius.circular(
-                                          15,
-                                        ),
-                                      ),
-                                    ),
-
-                                    onPressed: () {
-
-                                      cancelBooking(
-                                        bookingId,
-                                      );
-                                    },
-
-                                    icon:
-                                    const Icon(
-                                      Icons.cancel,
-                                      color: Colors
-                                          .white,
-                                    ),
-
-                                    label:
-                                    const Text(
-                                      'Cancel',
-                                      style:
-                                      TextStyle(
-                                        color: Colors
-                                            .white,
-                                        fontWeight:
-                                        FontWeight
-                                            .bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
                               ],
                             ),
 
@@ -548,6 +501,8 @@ class _BookingManagementPageState
       ),
     );
   }
+
+  // ================= BOOKING INFO =================
 
   Widget bookingInfo(
       IconData icon,
@@ -599,6 +554,8 @@ class _BookingManagementPageState
     );
   }
 
+  // ================= STATUS COLOR =================
+
   Color getStatusColor(String status) {
 
     switch (status) {
@@ -620,6 +577,8 @@ class _BookingManagementPageState
     }
   }
 
+  // ================= UPDATE STATUS =================
+
   void showStatusDialog(
       BuildContext context,
       String bookingId,
@@ -628,6 +587,16 @@ class _BookingManagementPageState
 
     String selectedStatus =
         currentStatus;
+
+    // FIX ERROR ASSIGNED
+    if (
+    selectedStatus != 'Pending' &&
+        selectedStatus != 'Completed' &&
+        selectedStatus != 'Cancelled'
+    ) {
+
+      selectedStatus = 'Pending';
+    }
 
     showDialog(
 
@@ -665,7 +634,6 @@ class _BookingManagementPageState
                 items: [
 
                   'Pending',
-                  'Assigned',
                   'Completed',
                   'Cancelled',
 
@@ -714,23 +682,65 @@ class _BookingManagementPageState
               onPressed:
                   () async {
 
-                await FirebaseFirestore
-                    .instance
-                    .collection(
-                    'bookings')
-                    .doc(bookingId)
-                    .update({
+                if (
+                selectedStatus == 'Pending' ||
+                    selectedStatus == 'Cancelled'
+                ) {
 
-                  'status':
-                  selectedStatus,
+                  await FirebaseFirestore
+                      .instance
+                      .collection('bookings')
+                      .doc(bookingId)
+                      .update({
 
-                  'updated_at':
-                  Timestamp.now(),
+                    'status':
+                    selectedStatus,
 
-                });
+                    'cleanerId':
+                    FieldValue.delete(),
 
-                Navigator.pop(
-                    context);
+                    'cleanerName':
+                    FieldValue.delete(),
+
+                    'cleanerEmail':
+                    FieldValue.delete(),
+
+                    'updated_at':
+                    Timestamp.now(),
+
+                  });
+
+                } else {
+
+                  await FirebaseFirestore
+                      .instance
+                      .collection('bookings')
+                      .doc(bookingId)
+                      .update({
+
+                    'status':
+                    selectedStatus,
+
+                    'updated_at':
+                    Timestamp.now(),
+
+                  });
+                }
+
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(
+
+                  SnackBar(
+                    content: Text(
+                      'Booking updated to $selectedStatus',
+                    ),
+
+                    backgroundColor:
+                    primaryGreen,
+                  ),
+                );
               },
 
               child: const Text(
@@ -747,6 +757,8 @@ class _BookingManagementPageState
       },
     );
   }
+
+  // ================= ASSIGN CLEANER =================
 
   void showAssignCleanerDialog(
       BuildContext context,
@@ -947,22 +959,5 @@ class _BookingManagementPageState
         );
       },
     );
-  }
-
-  Future<void> cancelBooking(
-      String bookingId,
-      ) async {
-
-    await FirebaseFirestore.instance
-        .collection('bookings')
-        .doc(bookingId)
-        .update({
-
-      'status': 'Cancelled',
-
-      'updated_at':
-      Timestamp.now(),
-
-    });
   }
 }

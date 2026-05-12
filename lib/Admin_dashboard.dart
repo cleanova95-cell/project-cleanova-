@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'login_page.dart';
 import 'booking_management_page.dart';
 
@@ -22,11 +24,100 @@ class _AdminDashboardState
 
     const UsersPage(),
 
-
     const BookingManagementPage(),
 
     const AdminProfilePage(),
+
   ];
+
+  Future<void> logoutUser() async {
+
+    final bool? confirmed =
+    await showDialog<bool>(
+
+      context: context,
+
+      builder: (context) {
+
+        return AlertDialog(
+
+          shape: RoundedRectangleBorder(
+            borderRadius:
+            BorderRadius.circular(20),
+          ),
+
+          title: const Text(
+            'Log Out',
+          ),
+
+          content: const Text(
+            'Are you sure you want to log out?',
+          ),
+
+          actions: [
+
+            TextButton(
+
+              onPressed: () {
+                Navigator.pop(
+                  context,
+                  false,
+                );
+              },
+
+              child: const Text(
+                'Cancel',
+              ),
+            ),
+
+            ElevatedButton(
+
+              style:
+              ElevatedButton.styleFrom(
+                backgroundColor:
+                Colors.green,
+              ),
+
+              onPressed: () {
+                Navigator.pop(
+                  context,
+                  true,
+                );
+              },
+
+              child: const Text(
+
+                'Log Out',
+
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+
+      await FirebaseAuth.instance
+          .signOut();
+
+      Navigator.pushAndRemoveUntil(
+
+        context,
+
+        MaterialPageRoute(
+          builder: (context) =>
+          const LoginPage(),
+        ),
+
+            (route) => false,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,15 +127,33 @@ class _AdminDashboardState
       backgroundColor:
       const Color(0xFFF1FFF3),
 
-      appBar: AppBar(
+      appBar: currentIndex == 0
+
+          ? AppBar(
 
         elevation: 0,
         centerTitle: true,
 
+        actions: [
+
+          IconButton(
+
+            icon: const Icon(
+              Icons.logout,
+              color: Colors.white,
+            ),
+
+            onPressed: logoutUser,
+          ),
+
+        ],
+
         flexibleSpace: Container(
 
           decoration: const BoxDecoration(
+
             gradient: LinearGradient(
+
               colors: [
                 Color(0xFF43A047),
                 Color(0xFF66BB6A),
@@ -56,32 +165,6 @@ class _AdminDashboardState
           ),
         ),
 
-        leading: IconButton(
-
-          icon: const Icon(
-            Icons.logout,
-            color: Colors.white,
-          ),
-
-          onPressed: () async {
-
-            await FirebaseAuth.instance
-                .signOut();
-
-            Navigator.pushAndRemoveUntil(
-
-              context,
-
-              MaterialPageRoute(
-                builder: (context) =>
-                const LoginPage(),
-              ),
-
-                  (route) => false,
-            );
-          },
-        ),
-
         title: const Text(
 
           'Admin Dashboard',
@@ -91,7 +174,9 @@ class _AdminDashboardState
             fontWeight: FontWeight.bold,
           ),
         ),
-      ),
+      )
+
+          : null,
 
       body: SafeArea(
         child: pages[currentIndex],
@@ -110,6 +195,9 @@ class _AdminDashboardState
 
         backgroundColor:
         Colors.white,
+
+        type:
+        BottomNavigationBarType.fixed,
 
         onTap: (index) {
 
@@ -146,7 +234,6 @@ class _AdminDashboardState
   }
 }
 
-
 class AdminHomePage
     extends StatelessWidget {
 
@@ -155,243 +242,385 @@ class AdminHomePage
   @override
   Widget build(BuildContext context) {
 
-    return SingleChildScrollView(
+    return StreamBuilder<QuerySnapshot>(
 
-      padding: const EdgeInsets.all(20),
+      stream:
+      FirebaseFirestore.instance
+          .collection('users')
+          .snapshots(),
 
-      child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+      builder: (context, userSnapshot) {
 
-        children: [
+        int customerCount = 0;
+        int cleanerCount = 0;
 
-          const Text(
+        if (userSnapshot.hasData) {
 
-            'Welcome Admin 👋',
+          final users =
+              userSnapshot.data!.docs;
 
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight:
-              FontWeight.bold,
-            ),
-          ),
+          for (var user in users) {
 
-          const SizedBox(height: 8),
+            final data =
+            user.data()
+            as Map<String, dynamic>;
 
-          const Text(
+            if (data['role'] ==
+                'customer') {
 
-            'Manage customers, cleaners and bookings',
+              customerCount++;
+            }
 
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
-          ),
+            if (data['role'] ==
+                'cleaner') {
 
-          const SizedBox(height: 25),
+              cleanerCount++;
+            }
+          }
+        }
 
-          Container(
+        return StreamBuilder<QuerySnapshot>(
 
-            padding:
-            const EdgeInsets.all(25),
+          stream:
+          FirebaseFirestore.instance
+              .collection('bookings')
+              .snapshots(),
 
-            decoration: BoxDecoration(
+          builder:
+              (context, bookingSnapshot) {
 
-              gradient:
-              const LinearGradient(
+            int bookingCount = 0;
+            int completedCount = 0;
 
-                colors: [
-                  Color(0xFF43A047),
-                  Color(0xFF66BB6A),
-                ],
+            if (bookingSnapshot.hasData) {
 
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+              final bookings =
+                  bookingSnapshot
+                      .data!.docs;
+
+              bookingCount =
+                  bookings.length;
+
+              for (var booking
+              in bookings) {
+
+                final data =
+                booking.data()
+                as Map<String,
+                    dynamic>;
+
+                if (data['status'] ==
+                    'Completed') {
+
+                  completedCount++;
+                }
+              }
+            }
+
+            return SingleChildScrollView(
+
+              padding:
+              const EdgeInsets.all(
+                20,
               ),
 
-              borderRadius:
-              BorderRadius.circular(25),
+              child: Column(
 
-              boxShadow: [
+                crossAxisAlignment:
+                CrossAxisAlignment
+                    .start,
 
-                BoxShadow(
-                  color:
-                  Colors.green.withValues(
-                    alpha: 0.3,
+                children: [
+
+                  const Text(
+
+                    'Welcome Admin 👋',
+
+                    style:
+                    TextStyle(
+                      fontSize: 28,
+                      fontWeight:
+                      FontWeight.bold,
+                    ),
                   ),
 
-                  blurRadius: 10,
+                  const SizedBox(
+                    height: 8,
+                  ),
 
-                  offset:
-                  const Offset(0, 5),
-                ),
-              ],
-            ),
+                  const Text(
 
-            child: const Row(
+                    'Manage customers, cleaners and bookings',
 
-              mainAxisAlignment:
-              MainAxisAlignment
-                  .spaceBetween,
+                    style:
+                    TextStyle(
+                      fontSize: 16,
+                      color:
+                      Colors.grey,
+                    ),
+                  ),
 
-              children: [
+                  const SizedBox(
+                    height: 25,
+                  ),
 
-                Expanded(
+                  Container(
 
-                  child: Column(
+                    padding:
+                    const EdgeInsets
+                        .all(25),
 
-                    crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
+                    decoration:
+                    BoxDecoration(
+
+                      gradient:
+                      const LinearGradient(
+
+                        colors: [
+
+                          Color(
+                            0xFF43A047,
+                          ),
+
+                          Color(
+                            0xFF66BB6A,
+                          ),
+
+                        ],
+
+                        begin:
+                        Alignment
+                            .topLeft,
+
+                        end:
+                        Alignment
+                            .bottomRight,
+                      ),
+
+                      borderRadius:
+                      BorderRadius
+                          .circular(
+                        25,
+                      ),
+
+                      boxShadow: [
+
+                        BoxShadow(
+                          color: Colors
+                              .green
+                              .withOpacity(
+                            0.3,
+                          ),
+
+                          blurRadius:
+                          10,
+
+                          offset:
+                          const Offset(
+                            0,
+                            5,
+                          ),
+                        ),
+
+                      ],
+                    ),
+
+                    child: const Row(
+
+                      mainAxisAlignment:
+                      MainAxisAlignment
+                          .spaceBetween,
+
+                      children: [
+
+                        Expanded(
+
+                          child: Column(
+
+                            crossAxisAlignment:
+                            CrossAxisAlignment
+                                .start,
+
+                            children: [
+
+                              Text(
+
+                                'System Overview',
+
+                                style:
+                                TextStyle(
+                                  color: Colors
+                                      .white,
+
+                                  fontSize:
+                                  24,
+
+                                  fontWeight:
+                                  FontWeight
+                                      .bold,
+                                ),
+                              ),
+
+                              SizedBox(
+                                height:
+                                10,
+                              ),
+
+                              Text(
+
+                                'Track all bookings and cleaners activity.',
+
+                                style:
+                                TextStyle(
+                                  color: Colors
+                                      .white,
+
+                                  fontSize:
+                                  15,
+                                ),
+                              ),
+
+                            ],
+                          ),
+                        ),
+
+                        SizedBox(
+                          width: 10,
+                        ),
+
+                        Icon(
+
+                          Icons
+                              .admin_panel_settings,
+
+                          color:
+                          Colors.white,
+
+                          size: 65,
+                        ),
+
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height: 30,
+                  ),
+
+                  const Text(
+
+                    'Quick Overview',
+
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight:
+                      FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height: 20,
+                  ),
+
+                  Row(
+
+                    mainAxisAlignment:
+                    MainAxisAlignment
+                        .spaceBetween,
 
                     children: [
 
-                      Text(
-
-                        'System Overview',
-
-                        style: TextStyle(
-                          color:
-                          Colors.white,
-
-                          fontSize: 24,
-
-                          fontWeight:
-                          FontWeight.bold,
-                        ),
+                      statCard(
+                        context,
+                        'Customers',
+                        customerCount
+                            .toString(),
+                        Icons.people,
                       ),
 
-                      SizedBox(height: 10),
-
-                      Text(
-
-                        'Track all bookings and cleaners activity.',
-
-                        style: TextStyle(
-                          color:
-                          Colors.white,
-
-                          fontSize: 15,
-                        ),
+                      statCard(
+                        context,
+                        'Cleaners',
+                        cleanerCount
+                            .toString(),
+                        Icons.cleaning_services,
                       ),
 
                     ],
                   ),
-                ),
 
-                SizedBox(width: 10),
+                  const SizedBox(
+                    height: 15,
+                  ),
 
-                Icon(
-                  Icons
-                      .admin_panel_settings,
+                  Row(
 
-                  color: Colors.white,
+                    mainAxisAlignment:
+                    MainAxisAlignment
+                        .spaceBetween,
 
-                  size: 65,
-                ),
+                    children: [
 
-              ],
-            ),
-          ),
+                      statCard(
+                        context,
+                        'Bookings',
+                        bookingCount
+                            .toString(),
+                        Icons.assignment,
+                      ),
 
-          const SizedBox(height: 30),
+                      statCard(
+                        context,
+                        'Completed',
+                        completedCount
+                            .toString(),
+                        Icons.check_circle,
+                      ),
 
-          const Text(
+                    ],
+                  ),
 
-            'Quick Overview',
+                  const SizedBox(
+                    height: 30,
+                  ),
 
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight:
-              FontWeight.bold,
-            ),
-          ),
+                  const Text(
 
-          const SizedBox(height: 20),
+                    'Recent Activities',
 
-          Row(
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight:
+                      FontWeight.bold,
+                    ),
+                  ),
 
-            mainAxisAlignment:
-            MainAxisAlignment
-                .spaceBetween,
+                  const SizedBox(
+                    height: 15,
+                  ),
 
-            children: [
+                  activityCard(
+                    'New Booking Received',
+                    'Customer booked cleaning service',
+                    Icons.notifications_active,
+                  ),
 
-              statCard(
-                context,
-                'Customers',
-                '25',
-                Icons.people,
+                  const SizedBox(
+                    height: 15,
+                  ),
+
+                  activityCard(
+                    'Cleaner Completed Job',
+                    'Cleaning service completed successfully',
+                    Icons.check_circle,
+                  ),
+
+                ],
               ),
-
-              statCard(
-                context,
-                'Cleaners',
-                '10',
-                Icons.cleaning_services,
-              ),
-
-            ],
-          ),
-
-          const SizedBox(height: 15),
-
-          Row(
-
-            mainAxisAlignment:
-            MainAxisAlignment
-                .spaceBetween,
-
-            children: [
-
-              statCard(
-                context,
-                'Bookings',
-                '40',
-                Icons.assignment,
-              ),
-
-              statCard(
-                context,
-                'Revenue',
-                'RM2500',
-                Icons.attach_money,
-              ),
-
-            ],
-          ),
-
-          const SizedBox(height: 30),
-
-          const Text(
-
-            'Recent Activities',
-
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight:
-              FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 15),
-
-          activityCard(
-            'New Booking Received',
-            'Customer booked house cleaning service',
-            Icons.notifications_active,
-          ),
-
-          const SizedBox(height: 15),
-
-          activityCard(
-            'Cleaner Completed Job',
-            'Office cleaning completed successfully',
-            Icons.check_circle,
-          ),
-
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -427,10 +656,12 @@ class AdminHomePage
             Colors.grey.shade200,
             blurRadius: 8,
           ),
+
         ],
       ),
 
       child: Column(
+
         children: [
 
           Icon(
@@ -439,7 +670,9 @@ class AdminHomePage
             size: 35,
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(
+            height: 12,
+          ),
 
           Text(
 
@@ -452,7 +685,9 @@ class AdminHomePage
             ),
           ),
 
-          const SizedBox(height: 5),
+          const SizedBox(
+            height: 5,
+          ),
 
           Text(
 
@@ -493,10 +728,12 @@ class AdminHomePage
             Colors.grey.shade200,
             blurRadius: 8,
           ),
+
         ],
       ),
 
       child: Row(
+
         children: [
 
           Container(
@@ -566,7 +803,6 @@ class AdminHomePage
   }
 }
 
-
 class UsersPage
     extends StatelessWidget {
 
@@ -591,14 +827,11 @@ class UsersPage
   }
 }
 
-// ===============================
-// ADMIN PROFILE PAGE
-// ===============================
-
 class AdminProfilePage
     extends StatelessWidget {
 
-  const AdminProfilePage({super.key});
+  const AdminProfilePage(
+      {super.key});
 
   @override
   Widget build(BuildContext context) {

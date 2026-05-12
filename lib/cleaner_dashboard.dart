@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'login_page.dart';
 import 'job_page.dart';
 
@@ -19,29 +21,99 @@ class _CleanerDashboardState
   final List pages = [
 
     const CleanerHomePage(),
-
     const JobsPage(),
-
     const CleanerHistoryPage(),
-
     const CleanerProfilePage(),
+
   ];
 
   Future<void> logoutUser() async {
 
-    await FirebaseAuth.instance.signOut();
+    final bool? confirmed =
+    await showDialog<bool>(
 
-    Navigator.pushAndRemoveUntil(
+      context: context,
 
-      context,
+      builder: (context) {
 
-      MaterialPageRoute(
-        builder: (context) =>
-        const LoginPage(),
-      ),
+        return AlertDialog(
 
-          (route) => false,
+          shape: RoundedRectangleBorder(
+            borderRadius:
+            BorderRadius.circular(20),
+          ),
+
+          title: const Text(
+            'Log Out',
+          ),
+
+          content: const Text(
+            'Are you sure you want to log out?',
+          ),
+
+          actions: [
+
+            TextButton(
+
+              onPressed: () {
+                Navigator.pop(
+                  context,
+                  false,
+                );
+              },
+
+              child: const Text(
+                'Cancel',
+              ),
+            ),
+
+            ElevatedButton(
+
+              style:
+              ElevatedButton.styleFrom(
+                backgroundColor:
+                Colors.green,
+              ),
+
+              onPressed: () {
+                Navigator.pop(
+                  context,
+                  true,
+                );
+              },
+
+              child: const Text(
+
+                'Log Out',
+
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+
+          ],
+        );
+      },
     );
+
+    if (confirmed == true) {
+
+      await FirebaseAuth.instance
+          .signOut();
+
+      Navigator.pushAndRemoveUntil(
+
+        context,
+
+        MaterialPageRoute(
+          builder: (context) =>
+          const LoginPage(),
+        ),
+
+            (route) => false,
+      );
+    }
   }
 
   @override
@@ -52,20 +124,26 @@ class _CleanerDashboardState
       backgroundColor:
       const Color(0xFFF1FFF3),
 
-      appBar: AppBar(
+      appBar: currentIndex == 0
+
+          ? AppBar(
 
         elevation: 0,
         centerTitle: true,
 
-        leading: IconButton(
+        actions: [
 
-          icon: const Icon(
-            Icons.logout,
-            color: Colors.white,
+          IconButton(
+
+            icon: const Icon(
+              Icons.logout,
+              color: Colors.white,
+            ),
+
+            onPressed: logoutUser,
           ),
 
-          onPressed: logoutUser,
-        ),
+        ],
 
         flexibleSpace: Container(
 
@@ -93,7 +171,9 @@ class _CleanerDashboardState
             fontWeight: FontWeight.bold,
           ),
         ),
-      ),
+      )
+
+          : null,
 
       body: SafeArea(
         child: pages[currentIndex],
@@ -113,7 +193,8 @@ class _CleanerDashboardState
         backgroundColor:
         Colors.white,
 
-        type: BottomNavigationBarType.fixed,
+        type:
+        BottomNavigationBarType.fixed,
 
         onTap: (index) {
 
@@ -150,249 +231,492 @@ class _CleanerDashboardState
   }
 }
 
-class CleanerHomePage extends StatelessWidget {
+class CleanerHomePage
+    extends StatelessWidget {
 
   const CleanerHomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
 
-    return SingleChildScrollView(
+    final user =
+        FirebaseAuth.instance.currentUser;
 
-      padding: const EdgeInsets.all(20),
+    return StreamBuilder<DocumentSnapshot>(
 
-      child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+      stream:
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .snapshots(),
 
-        children: [
+      builder: (context, userSnapshot) {
 
-          const Text(
+        String cleanerName =
+            'Cleaner';
 
-            'Welcome Back Cleaner 👋',
+        if (userSnapshot.hasData &&
+            userSnapshot.data!.exists) {
 
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight:
-              FontWeight.bold,
-            ),
-          ),
+          final userData =
+          userSnapshot.data!.data()
+          as Map<String, dynamic>;
 
-          const SizedBox(height: 8),
+          cleanerName =
+              userData['full_name'] ??
+                  'Cleaner';
+        }
 
-          const Text(
+        return StreamBuilder<QuerySnapshot>(
 
-            'Manage your assigned cleaning jobs',
+          stream:
+          FirebaseFirestore.instance
+              .collection('bookings')
+              .where(
+            'cleanerId',
+            isEqualTo: user.uid,
+          )
+              .snapshots(),
 
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
-          ),
+          builder:
+              (context, bookingSnapshot) {
 
-          const SizedBox(height: 25),
+            int assignedCount = 0;
+            int completedCount = 0;
+            int pendingCount = 0;
+            int thisMonthCount = 0;
 
-          Container(
+            List recentJobs = [];
 
-            padding:
-            const EdgeInsets.all(25),
+            if (bookingSnapshot.hasData) {
 
-            decoration: BoxDecoration(
+              final jobs =
+                  bookingSnapshot
+                      .data!.docs;
 
-              gradient:
-              const LinearGradient(
+              recentJobs = jobs;
 
-                colors: [
-                  Color(0xFF43A047),
-                  Color(0xFF66BB6A),
-                ],
+              for (var job in jobs) {
 
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                final data =
+                job.data()
+                as Map<String,
+                    dynamic>;
+
+                final status =
+                    data['status'] ??
+                        '';
+
+                if (status ==
+                    'Assigned') {
+
+                  assignedCount++;
+                }
+
+                if (status ==
+                    'Completed') {
+
+                  completedCount++;
+                }
+
+                if (status ==
+                    'Pending') {
+
+                  pendingCount++;
+                }
+
+                Timestamp? timestamp =
+                data['created_at'];
+
+                if (timestamp != null) {
+
+                  DateTime date =
+                  timestamp.toDate();
+
+                  DateTime now =
+                  DateTime.now();
+
+                  if (date.month ==
+                      now.month &&
+                      date.year ==
+                          now.year) {
+
+                    thisMonthCount++;
+                  }
+                }
+              }
+            }
+
+            return SingleChildScrollView(
+
+              padding:
+              const EdgeInsets.all(
+                20,
               ),
 
-              borderRadius:
-              BorderRadius.circular(25),
+              child: Column(
 
-              boxShadow: [
+                crossAxisAlignment:
+                CrossAxisAlignment
+                    .start,
 
-                BoxShadow(
-                  color:
-                  Colors.green.withOpacity(
-                    0.3,
+                children: [
+
+                  const Text(
+
+                    'Welcome Back 👋',
+
+                    style:
+                    TextStyle(
+                      fontSize: 28,
+                      fontWeight:
+                      FontWeight.bold,
+                    ),
                   ),
 
-                  blurRadius: 10,
+                  const SizedBox(
+                    height: 8,
+                  ),
 
-                  offset:
-                  const Offset(0, 5),
-                ),
-              ],
-            ),
+                  Text(
 
-            child: const Row(
+                    cleanerName,
 
-              mainAxisAlignment:
-              MainAxisAlignment
-                  .spaceBetween,
+                    style:
+                    const TextStyle(
+                      fontSize: 18,
+                      color:
+                      Colors.grey,
+                    ),
+                  ),
 
-              children: [
+                  const SizedBox(
+                    height: 25,
+                  ),
 
-                Expanded(
+                  Container(
 
-                  child: Column(
+                    padding:
+                    const EdgeInsets
+                        .all(25),
 
-                    crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
+                    decoration:
+                    BoxDecoration(
+
+                      gradient:
+                      const LinearGradient(
+
+                        colors: [
+
+                          Color(
+                            0xFF43A047,
+                          ),
+
+                          Color(
+                            0xFF66BB6A,
+                          ),
+
+                        ],
+
+                        begin:
+                        Alignment
+                            .topLeft,
+
+                        end:
+                        Alignment
+                            .bottomRight,
+                      ),
+
+                      borderRadius:
+                      BorderRadius
+                          .circular(
+                        25,
+                      ),
+
+                      boxShadow: [
+
+                        BoxShadow(
+                          color: Colors
+                              .green
+                              .withOpacity(
+                            0.3,
+                          ),
+
+                          blurRadius:
+                          10,
+
+                          offset:
+                          const Offset(
+                            0,
+                            5,
+                          ),
+                        ),
+
+                      ],
+                    ),
+
+                    child: const Row(
+
+                      mainAxisAlignment:
+                      MainAxisAlignment
+                          .spaceBetween,
+
+                      children: [
+
+                        Expanded(
+
+                          child: Column(
+
+                            crossAxisAlignment:
+                            CrossAxisAlignment
+                                .start,
+
+                            children: [
+
+                              Text(
+
+                                'Today Jobs',
+
+                                style:
+                                TextStyle(
+                                  color: Colors
+                                      .white,
+
+                                  fontSize:
+                                  24,
+
+                                  fontWeight:
+                                  FontWeight
+                                      .bold,
+                                ),
+                              ),
+
+                              SizedBox(
+                                height:
+                                10,
+                              ),
+
+                              Text(
+
+                                'Check your assigned jobs and complete tasks on time.',
+
+                                style:
+                                TextStyle(
+                                  color: Colors
+                                      .white,
+
+                                  fontSize:
+                                  15,
+                                ),
+                              ),
+
+                            ],
+                          ),
+                        ),
+
+                        SizedBox(
+                          width: 10,
+                        ),
+
+                        Icon(
+
+                          Icons
+                              .cleaning_services,
+
+                          color:
+                          Colors.white,
+
+                          size: 65,
+                        ),
+
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height: 30,
+                  ),
+
+                  const Text(
+
+                    'Quick Overview',
+
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight:
+                      FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height: 20,
+                  ),
+
+                  Row(
+
+                    mainAxisAlignment:
+                    MainAxisAlignment
+                        .spaceBetween,
 
                     children: [
 
-                      Text(
-
-                        'Today Jobs',
-
-                        style: TextStyle(
-                          color:
-                          Colors.white,
-
-                          fontSize: 24,
-
-                          fontWeight:
-                          FontWeight.bold,
-                        ),
+                      statCard(
+                        context,
+                        'Assigned',
+                        assignedCount
+                            .toString(),
+                        Icons.assignment,
                       ),
 
-                      SizedBox(height: 10),
-
-                      Text(
-
-                        'Check your assigned jobs and complete tasks on time.',
-
-                        style: TextStyle(
-                          color:
-                          Colors.white,
-
-                          fontSize: 15,
-                        ),
+                      statCard(
+                        context,
+                        'Completed',
+                        completedCount
+                            .toString(),
+                        Icons.check_circle,
                       ),
 
                     ],
                   ),
-                ),
 
-                SizedBox(width: 10),
+                  const SizedBox(
+                    height: 15,
+                  ),
 
-                Icon(
-                  Icons.cleaning_services,
+                  Row(
 
-                  color: Colors.white,
+                    mainAxisAlignment:
+                    MainAxisAlignment
+                        .spaceBetween,
 
-                  size: 65,
-                ),
+                    children: [
 
-              ],
-            ),
-          ),
+                      statCard(
+                        context,
+                        'Pending',
+                        pendingCount
+                            .toString(),
+                        Icons.pending_actions,
+                      ),
 
-          const SizedBox(height: 30),
+                      statCard(
+                        context,
+                        'This Month',
+                        thisMonthCount
+                            .toString(),
+                        Icons.calendar_month,
+                      ),
 
-          const Text(
+                    ],
+                  ),
 
-            'Quick Overview',
+                  const SizedBox(
+                    height: 30,
+                  ),
 
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight:
-              FontWeight.bold,
-            ),
-          ),
+                  const Text(
 
-          const SizedBox(height: 20),
+                    'Recent Assigned Jobs',
 
-          Row(
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight:
+                      FontWeight.bold,
+                    ),
+                  ),
 
-            mainAxisAlignment:
-            MainAxisAlignment
-                .spaceBetween,
+                  const SizedBox(
+                    height: 15,
+                  ),
 
-            children: [
+                  if (recentJobs.isEmpty)
 
-              statCard(
-                context,
-                'Assigned',
-                '5',
-                Icons.assignment,
+                    Container(
+
+                      width:
+                      double.infinity,
+
+                      padding:
+                      const EdgeInsets
+                          .all(20),
+
+                      decoration:
+                      BoxDecoration(
+
+                        color:
+                        Colors.white,
+
+                        borderRadius:
+                        BorderRadius
+                            .circular(
+                          20,
+                        ),
+                      ),
+
+                      child:
+                      const Center(
+
+                        child: Text(
+
+                          'No assigned jobs yet',
+
+                          style:
+                          TextStyle(
+                            fontSize:
+                            16,
+                            fontWeight:
+                            FontWeight
+                                .w500,
+                          ),
+                        ),
+                      ),
+                    )
+
+                  else
+
+                    Column(
+
+                      children:
+                      recentJobs
+                          .take(3)
+                          .map((job) {
+
+                        final data =
+                        job.data()
+                        as Map<String,
+                            dynamic>;
+
+                        return Padding(
+
+                          padding:
+                          const EdgeInsets
+                              .only(
+                            bottom:
+                            15,
+                          ),
+
+                          child:
+                          jobCard(
+
+                            data['service'] ??
+                                'No Service',
+
+                            data['address'] ??
+                                'No Address',
+
+                            data['status'] ??
+                                'Pending',
+                          ),
+                        );
+                      }).toList(),
+                    ),
+
+                ],
               ),
-
-              statCard(
-                context,
-                'Completed',
-                '12',
-                Icons.check_circle,
-              ),
-
-            ],
-          ),
-
-          const SizedBox(height: 15),
-
-          Row(
-
-            mainAxisAlignment:
-            MainAxisAlignment
-                .spaceBetween,
-
-            children: [
-
-              statCard(
-                context,
-                'Pending',
-                '2',
-                Icons.pending_actions,
-              ),
-
-              statCard(
-                context,
-                'This Month',
-                '18',
-                Icons.calendar_month,
-              ),
-
-            ],
-          ),
-
-          const SizedBox(height: 30),
-
-          const Text(
-
-            'Recent Assigned Jobs',
-
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight:
-              FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 15),
-
-          jobCard(
-            'House Cleaning',
-            'Taman Melawati',
-            'Pending',
-          ),
-
-          const SizedBox(height: 15),
-
-          jobCard(
-            'Office Cleaning',
-            'Ampang',
-            'In Progress',
-          ),
-
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -429,19 +753,25 @@ class CleanerHomePage extends StatelessWidget {
 
             blurRadius: 8,
           ),
+
         ],
       ),
 
       child: Column(
+
         children: [
 
           Icon(
+
             icon,
+
             color: Colors.green,
             size: 35,
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(
+            height: 12,
+          ),
 
           Text(
 
@@ -454,7 +784,9 @@ class CleanerHomePage extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 5),
+          const SizedBox(
+            height: 5,
+          ),
 
           Text(
 
@@ -469,7 +801,6 @@ class CleanerHomePage extends StatelessWidget {
       ),
     );
   }
-
 
   Widget jobCard(
       String service,
@@ -497,10 +828,12 @@ class CleanerHomePage extends StatelessWidget {
 
             blurRadius: 8,
           ),
+
         ],
       ),
 
       child: Column(
+
         crossAxisAlignment:
         CrossAxisAlignment.start,
 
@@ -520,7 +853,8 @@ class CleanerHomePage extends StatelessWidget {
 
                   service,
 
-                  style: const TextStyle(
+                  style:
+                  const TextStyle(
                     fontSize: 18,
                     fontWeight:
                     FontWeight.bold,
@@ -531,18 +865,26 @@ class CleanerHomePage extends StatelessWidget {
               Container(
 
                 padding:
-                const EdgeInsets.symmetric(
+                const EdgeInsets
+                    .symmetric(
                   horizontal: 12,
                   vertical: 6,
                 ),
 
-                decoration: BoxDecoration(
+                decoration:
+                BoxDecoration(
 
                   color:
-                  Colors.green.shade100,
+                  status ==
+                      'Completed'
+                      ? Colors.green
+                      .shade100
+                      : Colors.blue
+                      .shade100,
 
                   borderRadius:
-                  BorderRadius.circular(
+                  BorderRadius
+                      .circular(
                     20,
                   ),
                 ),
@@ -551,8 +893,14 @@ class CleanerHomePage extends StatelessWidget {
 
                   status,
 
-                  style: const TextStyle(
-                    color: Colors.green,
+                  style: TextStyle(
+
+                    color:
+                    status ==
+                        'Completed'
+                        ? Colors.green
+                        : Colors.blue,
+
                     fontWeight:
                     FontWeight.bold,
                   ),
@@ -562,9 +910,12 @@ class CleanerHomePage extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 15),
+          const SizedBox(
+            height: 15,
+          ),
 
           Row(
+
             children: [
 
               const Icon(
@@ -573,51 +924,16 @@ class CleanerHomePage extends StatelessWidget {
                 color: Colors.grey,
               ),
 
-              const SizedBox(width: 8),
+              const SizedBox(
+                width: 8,
+              ),
 
-              Text(location),
+              Expanded(
+                child:
+                Text(location),
+              ),
 
             ],
-          ),
-
-          const SizedBox(height: 18),
-
-          SizedBox(
-
-            width: double.infinity,
-            height: 45,
-
-            child: ElevatedButton(
-
-              onPressed: () {},
-
-              style:
-              ElevatedButton.styleFrom(
-
-                backgroundColor:
-                Colors.green,
-
-                shape:
-                RoundedRectangleBorder(
-
-                  borderRadius:
-                  BorderRadius.circular(
-                    15,
-                  ),
-                ),
-              ),
-
-              child: const Text(
-
-                'View Details',
-
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight:
-                  FontWeight.bold,
-                ),
-              ),
-            ),
           ),
 
         ],
@@ -626,11 +942,11 @@ class CleanerHomePage extends StatelessWidget {
   }
 }
 
-
 class CleanerHistoryPage
     extends StatelessWidget {
 
-  const CleanerHistoryPage({super.key});
+  const CleanerHistoryPage(
+      {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -654,7 +970,8 @@ class CleanerHistoryPage
 class CleanerProfilePage
     extends StatelessWidget {
 
-  const CleanerProfilePage({super.key});
+  const CleanerProfilePage(
+      {super.key});
 
   @override
   Widget build(BuildContext context) {

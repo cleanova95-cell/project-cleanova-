@@ -62,6 +62,12 @@ class JobsPage extends StatelessWidget {
 
               var booking = bookings[index];
 
+              bool isCancelled =
+                  booking['status'] == 'Cancelled';
+
+              bool isCompleted =
+                  booking['status'] == 'Completed';
+
               return Container(
 
                 margin: const EdgeInsets.only(
@@ -119,7 +125,12 @@ class JobsPage extends StatelessWidget {
                           ),
 
                           decoration: BoxDecoration(
-                            color: Colors.green.shade100,
+
+                            color: isCancelled
+                                ? Colors.grey.shade300
+                                : isCompleted
+                                ? Colors.blue.shade100
+                                : Colors.green.shade100,
 
                             borderRadius:
                             BorderRadius.circular(20),
@@ -129,8 +140,14 @@ class JobsPage extends StatelessWidget {
 
                             booking['status'],
 
-                            style: const TextStyle(
-                              color: Colors.green,
+                            style: TextStyle(
+
+                              color: isCancelled
+                                  ? Colors.grey
+                                  : isCompleted
+                                  ? Colors.blue
+                                  : Colors.green,
+
                               fontWeight:
                               FontWeight.bold,
                             ),
@@ -177,7 +194,10 @@ class JobsPage extends StatelessWidget {
 
                       child: ElevatedButton(
 
-                        onPressed: () async {
+                        onPressed:
+                        isCancelled || isCompleted
+                            ? null
+                            : () async {
 
                           await FirebaseFirestore.instance
                               .collection('bookings')
@@ -209,7 +229,9 @@ class JobsPage extends StatelessWidget {
                         ElevatedButton.styleFrom(
 
                           backgroundColor:
-                          Colors.green,
+                          isCancelled || isCompleted
+                              ? Colors.grey
+                              : Colors.green,
 
                           shape:
                           RoundedRectangleBorder(
@@ -218,11 +240,15 @@ class JobsPage extends StatelessWidget {
                           ),
                         ),
 
-                        child: const Text(
+                        child: Text(
 
-                          'Mark As Completed',
+                          isCancelled
+                              ? 'Job Cancelled'
+                              : isCompleted
+                              ? 'Job Completed'
+                              : 'Mark As Completed',
 
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 17,
                             fontWeight: FontWeight.bold,

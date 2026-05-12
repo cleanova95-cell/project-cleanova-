@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'login_page.dart';
 import 'booking_page.dart';
 import 'BookingHistoryPage.dart';
@@ -29,69 +31,130 @@ class _CustomerDashboardState
 
   Future<void> logoutUser() async {
 
-    final bool? confirmed = await showDialog<bool>(
+    final bool? confirmed =
+    await showDialog<bool>(
+
       context: context,
-      builder: (BuildContext dialogContext) {
+
+      builder: (
+          BuildContext dialogContext,
+          ) {
+
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+
+          shape:
+          RoundedRectangleBorder(
+            borderRadius:
+            BorderRadius.circular(20),
           ),
+
           title: const Row(
+
             children: [
-              Icon(Icons.logout, color: Color(0xFF43A047)),
+
+              Icon(
+                Icons.logout,
+                color: Color(0xFF43A047),
+              ),
+
               SizedBox(width: 10),
+
               Text(
                 'Log Out',
                 style: TextStyle(
-                  fontWeight: FontWeight.bold,
+                  fontWeight:
+                  FontWeight.bold,
                 ),
               ),
+
             ],
           ),
+
           content: const Text(
+
             'Are you sure you want to log out?',
-            style: TextStyle(fontSize: 16),
+
+            style: TextStyle(
+              fontSize: 16,
+            ),
           ),
+
           actions: [
+
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
+
+              onPressed: () {
+
+                Navigator.pop(
+                  dialogContext,
+                  false,
+                );
+              },
+
               child: const Text(
+
                 'Cancel',
+
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 16,
                 ),
               ),
             ),
+
             ElevatedButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF43A047),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+
+              onPressed: () {
+
+                Navigator.pop(
+                  dialogContext,
+                  true,
+                );
+              },
+
+              style:
+              ElevatedButton.styleFrom(
+
+                backgroundColor:
+                const Color(0xFF43A047),
+
+                shape:
+                RoundedRectangleBorder(
+                  borderRadius:
+                  BorderRadius.circular(12),
                 ),
               ),
+
               child: const Text(
+
                 'Log Out',
+
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                 ),
               ),
             ),
+
           ],
         );
       },
     );
 
     if (confirmed == true) {
-      await FirebaseAuth.instance.signOut();
+
+      await FirebaseAuth.instance
+          .signOut();
 
       Navigator.pushAndRemoveUntil(
+
         context,
+
         MaterialPageRoute(
-          builder: (context) => const LoginPage(),
+          builder: (context) =>
+          const LoginPage(),
         ),
+
             (route) => false,
       );
     }
@@ -113,20 +176,26 @@ class _CustomerDashboardState
         centerTitle: true,
 
         actions: [
+
           IconButton(
+
             icon: const Icon(
               Icons.logout,
               color: Colors.white,
             ),
+
             onPressed: logoutUser,
           ),
+
         ],
 
         flexibleSpace: Container(
 
-          decoration: const BoxDecoration(
+          decoration:
+          const BoxDecoration(
 
-            gradient: LinearGradient(
+            gradient:
+            LinearGradient(
 
               colors: [
 
@@ -135,8 +204,11 @@ class _CustomerDashboardState
 
               ],
 
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+              begin:
+              Alignment.topLeft,
+
+              end:
+              Alignment.bottomRight,
             ),
           ),
         ),
@@ -147,7 +219,8 @@ class _CustomerDashboardState
 
           style: TextStyle(
             color: Colors.white,
-            fontWeight: FontWeight.bold,
+            fontWeight:
+            FontWeight.bold,
           ),
         ),
       )
@@ -173,9 +246,10 @@ class _CustomerDashboardState
         onTap: (index) {
 
           setState(() {
-            currentIndex = index;
-          });
 
+            currentIndex = index;
+
+          });
         },
 
         items: const [
@@ -184,7 +258,6 @@ class _CustomerDashboardState
 
             icon: Icon(Icons.home),
             label: 'Home',
-
           ),
 
           BottomNavigationBarItem(
@@ -200,14 +273,12 @@ class _CustomerDashboardState
 
             icon: Icon(Icons.history),
             label: 'History',
-
           ),
 
           BottomNavigationBarItem(
 
             icon: Icon(Icons.person),
             label: 'Profile',
-
           ),
 
         ],
@@ -217,223 +288,290 @@ class _CustomerDashboardState
 }
 
 class HomePage extends StatelessWidget {
+
   const HomePage({super.key});
+
+  Future<String> getUserName() async {
+
+    final user =
+        FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return 'Customer';
+    }
+
+    final snapshot =
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    if (snapshot.exists) {
+
+      return snapshot['full_name']
+          ?? 'Customer';
+    }
+
+    return 'Customer';
+  }
 
   @override
   Widget build(BuildContext context) {
 
-    return SingleChildScrollView(
+    return FutureBuilder<String>(
 
-      padding: const EdgeInsets.all(20),
+      future: getUserName(),
 
-      child: Column(
+      builder: (context, snapshot) {
 
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        String userName =
+            snapshot.data ?? 'Customer';
 
-        children: [
+        return SingleChildScrollView(
 
-          const Text(
+          padding:
+          const EdgeInsets.all(20),
 
-            'Welcome Back 👋',
+          child: Column(
 
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          const Text(
-
-            'Find your best cleaning service',
-
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
-          ),
-
-          const SizedBox(height: 25),
-
-          Container(
-
-            padding: const EdgeInsets.all(25),
-
-            decoration: BoxDecoration(
-
-              gradient:
-              const LinearGradient(
-
-                colors: [
-
-                  Color(0xFF43A047),
-                  Color(0xFF66BB6A),
-
-                ],
-
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-
-              borderRadius:
-              BorderRadius.circular(25),
-
-              boxShadow: [
-
-                BoxShadow(
-                  color:
-                  Colors.green.withValues(
-                    alpha: 0.3,
-                  ),
-
-                  blurRadius: 10,
-
-                  offset:
-                  const Offset(0, 5),
-                ),
-
-              ],
-            ),
-
-            child: const Row(
-
-              mainAxisAlignment:
-              MainAxisAlignment
-                  .spaceBetween,
-
-              children: [
-
-                Expanded(
-
-                  child: Column(
-
-                    crossAxisAlignment:
-                    CrossAxisAlignment
-                        .start,
-
-                    children: [
-
-                      Text(
-
-                        'Need Cleaning?',
-
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight:
-                          FontWeight.bold,
-                        ),
-                      ),
-
-                      SizedBox(height: 10),
-
-                      Text(
-
-                        'Book trusted cleaners easily and quickly.',
-
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                        ),
-                      ),
-
-                    ],
-                  ),
-                ),
-
-                SizedBox(width: 10),
-
-                Icon(
-
-                  Icons.cleaning_services,
-
-                  color: Colors.white,
-                  size: 65,
-
-                ),
-
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 30),
-
-          const Text(
-
-            'Cleaning Services',
-
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          Row(
-
-            mainAxisAlignment:
-            MainAxisAlignment
-                .spaceBetween,
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
 
             children: [
 
-              serviceCard(
-                Icons.home,
-                'House',
+              Text(
+
+                'Welcome Back, $userName 👋',
+
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight:
+                  FontWeight.bold,
+                ),
               ),
 
-              serviceCard(
-                Icons.business,
-                'Office',
+              const SizedBox(height: 8),
+
+              const Text(
+
+                'Book your cleaning service easily',
+
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
               ),
 
-              serviceCard(
-                Icons.kitchen,
-                'Kitchen',
+              const SizedBox(height: 25),
+
+              // ================= BANNER =================
+
+              Container(
+
+                padding:
+                const EdgeInsets.all(25),
+
+                decoration: BoxDecoration(
+
+                  gradient:
+                  const LinearGradient(
+
+                    colors: [
+
+                      Color(0xFF43A047),
+                      Color(0xFF66BB6A),
+
+                    ],
+
+                    begin:
+                    Alignment.topLeft,
+
+                    end:
+                    Alignment.bottomRight,
+                  ),
+
+                  borderRadius:
+                  BorderRadius.circular(25),
+
+                  boxShadow: [
+
+                    BoxShadow(
+
+                      color:
+                      Colors.green.withValues(
+                        alpha: 0.3,
+                      ),
+
+                      blurRadius: 10,
+
+                      offset:
+                      const Offset(0, 5),
+                    ),
+
+                  ],
+                ),
+
+                child: const Row(
+
+                  mainAxisAlignment:
+                  MainAxisAlignment
+                      .spaceBetween,
+
+                  children: [
+
+                    Expanded(
+
+                      child: Column(
+
+                        crossAxisAlignment:
+                        CrossAxisAlignment
+                            .start,
+
+                        children: [
+
+                          Text(
+
+                            'Need Cleaning?',
+
+                            style: TextStyle(
+                              color:
+                              Colors.white,
+
+                              fontSize: 24,
+
+                              fontWeight:
+                              FontWeight.bold,
+                            ),
+                          ),
+
+                          SizedBox(height: 10),
+
+                          Text(
+
+                            'Book trusted cleaners quickly and easily.',
+
+                            style: TextStyle(
+                              color:
+                              Colors.white,
+
+                              fontSize: 15,
+                            ),
+                          ),
+
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(width: 10),
+
+                    Icon(
+
+                      Icons.cleaning_services,
+
+                      color: Colors.white,
+                      size: 65,
+                    ),
+
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
+              // ================= SERVICES =================
+
+              const Text(
+
+                'Cleaning Services',
+
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight:
+                  FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              Row(
+
+                mainAxisAlignment:
+                MainAxisAlignment
+                    .spaceBetween,
+
+                children: [
+
+                  serviceCard(
+                    Icons.home,
+                    'House',
+                  ),
+
+                  serviceCard(
+                    Icons.business,
+                    'Office',
+                  ),
+
+                  serviceCard(
+                    Icons.auto_fix_high,
+                    'Deep Cleaning',
+                  ),
+
+                ],
+              ),
+
+              const SizedBox(height: 30),
+
+              // ================= POPULAR SERVICES =================
+
+              const Text(
+
+                'Popular Services',
+
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight:
+                  FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              popularCard(
+
+                'House Cleaning',
+                'RM120',
+
+                Icons.cleaning_services,
+              ),
+
+              const SizedBox(height: 15),
+
+              popularCard(
+
+                'Office Cleaning',
+                'RM200',
+
+                Icons.business_center,
+              ),
+
+              const SizedBox(height: 15),
+
+              popularCard(
+
+                'Deep Cleaning',
+                'RM150',
+
+                Icons.auto_fix_high,
               ),
 
             ],
           ),
-
-          const SizedBox(height: 30),
-
-          const Text(
-
-            'Popular Services',
-
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 15),
-
-          popularCard(
-
-            'Full House Cleaning',
-            'RM120',
-
-            Icons.cleaning_services,
-          ),
-
-          const SizedBox(height: 15),
-
-          popularCard(
-
-            'Office Cleaning',
-            'RM200',
-
-            Icons.business_center,
-          ),
-
-        ],
-      ),
+        );
+      },
     );
   }
+
+  // ================= SERVICE CARD =================
 
   Widget serviceCard(
       IconData icon,
@@ -444,7 +582,8 @@ class HomePage extends StatelessWidget {
 
       width: 105,
 
-      padding: const EdgeInsets.symmetric(
+      padding:
+      const EdgeInsets.symmetric(
         vertical: 20,
       ),
 
@@ -458,7 +597,8 @@ class HomePage extends StatelessWidget {
         boxShadow: [
 
           BoxShadow(
-            color: Colors.grey.shade200,
+            color:
+            Colors.grey.shade200,
             blurRadius: 8,
           ),
 
@@ -475,7 +615,6 @@ class HomePage extends StatelessWidget {
 
             color: Colors.green,
             size: 40,
-
           ),
 
           const SizedBox(height: 12),
@@ -484,8 +623,12 @@ class HomePage extends StatelessWidget {
 
             title,
 
+            textAlign:
+            TextAlign.center,
+
             style: const TextStyle(
-              fontWeight: FontWeight.w600,
+              fontWeight:
+              FontWeight.w600,
             ),
           ),
 
@@ -493,6 +636,8 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
+
+  // ================= POPULAR CARD =================
 
   Widget popularCard(
       String title,
@@ -502,7 +647,8 @@ class HomePage extends StatelessWidget {
 
     return Container(
 
-      padding: const EdgeInsets.all(18),
+      padding:
+      const EdgeInsets.all(18),
 
       decoration: BoxDecoration(
 
@@ -514,7 +660,8 @@ class HomePage extends StatelessWidget {
         boxShadow: [
 
           BoxShadow(
-            color: Colors.grey.shade200,
+            color:
+            Colors.grey.shade200,
             blurRadius: 8,
           ),
 
@@ -532,7 +679,8 @@ class HomePage extends StatelessWidget {
 
             decoration: BoxDecoration(
 
-              color: Colors.green.shade100,
+              color:
+              Colors.green.shade100,
 
               borderRadius:
               BorderRadius.circular(15),
@@ -544,7 +692,6 @@ class HomePage extends StatelessWidget {
 
               color: Colors.green,
               size: 35,
-
             ),
           ),
 
@@ -577,8 +724,11 @@ class HomePage extends StatelessWidget {
                   price,
 
                   style: const TextStyle(
+
                     color: Colors.green,
+
                     fontSize: 16,
+
                     fontWeight:
                     FontWeight.bold,
                   ),
