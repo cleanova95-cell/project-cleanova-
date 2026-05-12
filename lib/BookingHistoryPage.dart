@@ -209,6 +209,11 @@ class BookingHistoryPage extends StatelessWidget {
 
                       statusColor = Colors.red;
 
+                    } else if (booking['status'] ==
+                        'Assigned') {
+
+                      statusColor = Colors.blue;
+
                     } else {
 
                       statusColor = Colors.green;
@@ -378,6 +383,72 @@ class BookingHistoryPage extends StatelessWidget {
 
                               ],
                             ),
+
+                            const SizedBox(height: 15),
+
+                            // CANCEL BUTTON
+                            if (booking['status'] ==
+                                'Pending')
+
+                              SizedBox(
+
+                                width: double.infinity,
+
+                                child: ElevatedButton(
+
+                                  onPressed: () async {
+
+                                    await FirebaseFirestore
+                                        .instance
+                                        .collection(
+                                        'bookings')
+                                        .doc(booking.id)
+                                        .update({
+
+                                      'status':
+                                      'Cancelled',
+
+                                      'updated_at':
+                                      Timestamp.now(),
+
+                                    });
+                                  },
+
+                                  style:
+                                  ElevatedButton
+                                      .styleFrom(
+
+                                    backgroundColor:
+                                    Colors.red,
+
+                                    padding:
+                                    const EdgeInsets
+                                        .symmetric(
+                                      vertical: 14,
+                                    ),
+
+                                    shape:
+                                    RoundedRectangleBorder(
+                                      borderRadius:
+                                      BorderRadius.circular(
+                                        15,
+                                      ),
+                                    ),
+                                  ),
+
+                                  child: const Text(
+
+                                    'Cancel Booking',
+
+                                    style: TextStyle(
+                                      color:
+                                      Colors.white,
+                                      fontWeight:
+                                      FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
 
                           ],
                         ),

@@ -27,7 +27,6 @@ class _BookingManagementPageState
 
         children: [
 
-          // HEADER
           Container(
 
             width: double.infinity,
@@ -92,7 +91,6 @@ class _BookingManagementPageState
 
           const SizedBox(height: 15),
 
-          // BOOKING LIST
           Expanded(
 
             child:
@@ -110,7 +108,6 @@ class _BookingManagementPageState
               builder:
                   (context, snapshot) {
 
-                // LOADING
                 if (snapshot.connectionState ==
                     ConnectionState
                         .waiting) {
@@ -121,7 +118,6 @@ class _BookingManagementPageState
                   );
                 }
 
-                // NO DATA
                 if (!snapshot.hasData ||
                     snapshot
                         .data!.docs.isEmpty) {
@@ -186,20 +182,23 @@ class _BookingManagementPageState
                             'No Address';
 
                     final cleanerName =
-                    data.containsKey(
-                        'cleanerName')
-                        ? data['cleanerName']
-                        : 'Not Assigned';
+                        data['cleanerName'] ??
+                            'Not Assigned';
 
-                    // DATE FORMAT
-                    Timestamp timestamp =
+                    Timestamp? timestamp =
                     data['bookingDate'];
 
-                    DateTime date =
-                    timestamp.toDate();
+                    String bookingDate =
+                        'No Date';
 
-                    final bookingDate =
-                        '${date.day}/${date.month}/${date.year}';
+                    if (timestamp != null) {
+
+                      DateTime date =
+                      timestamp.toDate();
+
+                      bookingDate =
+                      '${date.day}/${date.month}/${date.year}';
+                    }
 
                     return Container(
 
@@ -246,7 +245,6 @@ class _BookingManagementPageState
 
                           children: [
 
-                            // EMAIL + STATUS
                             Row(
                               mainAxisAlignment:
                               MainAxisAlignment
@@ -312,7 +310,6 @@ class _BookingManagementPageState
                               height: 18,
                             ),
 
-                            // INFO
                             bookingInfo(
                               Icons
                                   .cleaning_services,
@@ -349,11 +346,72 @@ class _BookingManagementPageState
                               height: 20,
                             ),
 
-                            // BUTTONS
                             Row(
                               children: [
 
-                                // UPDATE BUTTON
+                                Expanded(
+
+                                  child:
+                                  ElevatedButton
+                                      .icon(
+
+                                    style:
+                                    ElevatedButton
+                                        .styleFrom(
+                                      backgroundColor:
+                                      Colors.blue,
+
+                                      padding:
+                                      const EdgeInsets
+                                          .symmetric(
+                                        vertical:
+                                        14,
+                                      ),
+
+                                      shape:
+                                      RoundedRectangleBorder(
+                                        borderRadius:
+                                        BorderRadius.circular(
+                                          15,
+                                        ),
+                                      ),
+                                    ),
+
+                                    onPressed: () {
+
+                                      showStatusDialog(
+                                        context,
+                                        bookingId,
+                                        status,
+                                      );
+                                    },
+
+                                    icon:
+                                    const Icon(
+                                      Icons.update,
+                                      color: Colors
+                                          .white,
+                                    ),
+
+                                    label:
+                                    const Text(
+                                      'Update',
+                                      style:
+                                      TextStyle(
+                                        color: Colors
+                                            .white,
+                                        fontWeight:
+                                        FontWeight
+                                            .bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(
+                                  width: 10,
+                                ),
+
                                 Expanded(
 
                                   child:
@@ -384,7 +442,7 @@ class _BookingManagementPageState
 
                                     onPressed: () {
 
-                                      showStatusDialog(
+                                      showAssignCleanerDialog(
                                         context,
                                         bookingId,
                                       );
@@ -392,14 +450,14 @@ class _BookingManagementPageState
 
                                     icon:
                                     const Icon(
-                                      Icons.edit,
+                                      Icons.person_add,
                                       color: Colors
                                           .white,
                                     ),
 
                                     label:
                                     const Text(
-                                      'Update',
+                                      'Assign',
                                       style:
                                       TextStyle(
                                         color: Colors
@@ -416,7 +474,6 @@ class _BookingManagementPageState
                                   width: 10,
                                 ),
 
-                                // CANCEL BUTTON
                                 Expanded(
 
                                   child:
@@ -492,7 +549,6 @@ class _BookingManagementPageState
     );
   }
 
-  // INFO ROW
   Widget bookingInfo(
       IconData icon,
       String title,
@@ -543,7 +599,6 @@ class _BookingManagementPageState
     );
   }
 
-  // STATUS COLOR
   Color getStatusColor(String status) {
 
     switch (status) {
@@ -565,14 +620,14 @@ class _BookingManagementPageState
     }
   }
 
-  // UPDATE STATUS
   void showStatusDialog(
       BuildContext context,
       String bookingId,
+      String currentStatus,
       ) {
 
     String selectedStatus =
-        'Pending';
+        currentStatus;
 
     showDialog(
 
@@ -693,7 +748,207 @@ class _BookingManagementPageState
     );
   }
 
-  // CANCEL BOOKING
+  void showAssignCleanerDialog(
+      BuildContext context,
+      String bookingId,
+      ) {
+
+    String selectedCleanerName = '';
+    String selectedCleanerId = '';
+    String selectedCleanerEmail = '';
+
+    showDialog(
+
+      context: context,
+
+      builder: (context) {
+
+        return AlertDialog(
+
+          shape: RoundedRectangleBorder(
+            borderRadius:
+            BorderRadius.circular(20),
+          ),
+
+          title: const Text(
+            'Assign Cleaner',
+          ),
+
+          content:
+          StreamBuilder<QuerySnapshot>(
+
+            stream:
+            FirebaseFirestore.instance
+                .collection('users')
+                .where(
+              'role',
+              isEqualTo: 'cleaner',
+            )
+                .snapshots(),
+
+            builder:
+                (context, snapshot) {
+
+              if (!snapshot.hasData) {
+
+                return const SizedBox(
+                  height: 80,
+                  child: Center(
+                    child:
+                    CircularProgressIndicator(),
+                  ),
+                );
+              }
+
+              final cleaners =
+                  snapshot.data!.docs;
+
+              if (cleaners.isEmpty) {
+
+                return const Text(
+                  'No cleaner found',
+                );
+              }
+
+              return DropdownButtonFormField<String>(
+
+                decoration:
+                const InputDecoration(
+                  labelText:
+                  'Select Cleaner',
+                  border:
+                  OutlineInputBorder(),
+                ),
+
+                items:
+                cleaners.map((cleaner) {
+
+                  final data =
+                  cleaner.data()
+                  as Map<String, dynamic>;
+
+                  return DropdownMenuItem(
+
+                    value: cleaner.id,
+
+                    child: Text(
+                      data['full_name'] ??
+                          'No Name',
+                    ),
+                  );
+                }).toList(),
+
+                onChanged: (value) {
+
+                  final cleaner =
+                  cleaners.firstWhere(
+                        (doc) =>
+                    doc.id == value,
+                  );
+
+                  final data =
+                  cleaner.data()
+                  as Map<String, dynamic>;
+
+                  selectedCleanerId =
+                      cleaner.id;
+
+                  selectedCleanerName =
+                  data['full_name'];
+
+                  selectedCleanerEmail =
+                  data['email'];
+                },
+              );
+            },
+          ),
+
+          actions: [
+
+            TextButton(
+
+              onPressed: () {
+                Navigator.pop(
+                    context);
+              },
+
+              child:
+              const Text(
+                  'Cancel'),
+            ),
+
+            ElevatedButton(
+
+              style:
+              ElevatedButton
+                  .styleFrom(
+                backgroundColor:
+                primaryGreen,
+              ),
+
+              onPressed:
+                  () async {
+
+                if (selectedCleanerId
+                    .isEmpty) {
+                  return;
+                }
+
+                await FirebaseFirestore
+                    .instance
+                    .collection(
+                    'bookings')
+                    .doc(bookingId)
+                    .update({
+
+                  'cleanerId':
+                  selectedCleanerId,
+
+                  'cleanerName':
+                  selectedCleanerName,
+
+                  'cleanerEmail':
+                  selectedCleanerEmail,
+
+                  'status':
+                  'Assigned',
+
+                  'updated_at':
+                  Timestamp.now(),
+
+                });
+
+                Navigator.pop(
+                    context);
+
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(
+
+                  const SnackBar(
+                    content: Text(
+                      'Cleaner Assigned Successfully',
+                    ),
+                    backgroundColor:
+                    Colors.green,
+                  ),
+                );
+              },
+
+              child: const Text(
+                'Assign',
+                style: TextStyle(
+                  color:
+                  Colors.white,
+                ),
+              ),
+            ),
+
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> cancelBooking(
       String bookingId,
       ) async {

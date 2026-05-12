@@ -61,6 +61,11 @@ class BookingDetailsPage extends StatelessWidget {
 
       statusColor = Colors.red;
 
+    } else if (booking['status'] ==
+        'Assigned') {
+
+      statusColor = Colors.blue;
+
     } else {
 
       statusColor = Colors.green;
@@ -225,6 +230,21 @@ class BookingDetailsPage extends StatelessWidget {
               booking['email'],
             ),
 
+            // CLEANER NAME
+            if (booking.data()
+                .toString()
+                .contains('cleanerName')) ...[
+
+              const SizedBox(height: 18),
+
+              detailsCard(
+                Icons.cleaning_services,
+                'Assigned Cleaner',
+                booking['cleanerName'],
+              ),
+
+            ],
+
             const SizedBox(height: 35),
 
             Container(
@@ -263,7 +283,9 @@ class BookingDetailsPage extends StatelessWidget {
                           ? 'Your booking is waiting for cleaner confirmation.'
                           : isCancelled
                           ? 'This booking has been cancelled.'
-                          : 'Your cleaning service is confirmed.',
+                          : booking['status'] == 'Assigned'
+                          ? 'Cleaner has been assigned to your booking.'
+                          : 'Your cleaning service is completed.',
 
                       style: TextStyle(
                         color: statusColor,
@@ -277,6 +299,7 @@ class BookingDetailsPage extends StatelessWidget {
               ),
             ),
 
+            // CANCEL BUTTON ONLY FOR PENDING
             if (isPending) ...[
 
               const SizedBox(height: 35),
