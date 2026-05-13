@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'login_page.dart';
 import 'booking_management_page.dart';
+import 'admin_profile_page.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -408,8 +409,8 @@ class AdminHomePage
                         BoxShadow(
                           color: Colors
                               .green
-                              .withOpacity(
-                            0.3,
+                              .withValues(
+                            alpha: 0.3,
                           ),
 
                           blurRadius:
@@ -816,31 +817,6 @@ class UsersPage
       child: Text(
 
         'Manage Customers & Cleaners',
-
-        style: TextStyle(
-          fontSize: 24,
-          fontWeight:
-          FontWeight.bold,
-        ),
-      ),
-    );
-  }
-}
-
-class AdminProfilePage
-    extends StatelessWidget {
-
-  const AdminProfilePage(
-      {super.key});
-
-  @override
-  Widget build(BuildContext context) {
-
-    return const Center(
-
-      child: Text(
-
-        'Admin Profile',
 
         style: TextStyle(
           fontSize: 24,

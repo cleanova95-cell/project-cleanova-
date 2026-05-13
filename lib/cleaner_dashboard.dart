@@ -1,3 +1,4 @@
+import 'package:cleanova/cleaner_profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -438,8 +439,8 @@ class CleanerHomePage
                         BoxShadow(
                           color: Colors
                               .green
-                              .withOpacity(
-                            0.3,
+                              .withValues(
+                            alpha: 0.3,
                           ),
 
                           blurRadius:
@@ -956,31 +957,6 @@ class CleanerHistoryPage
       child: Text(
 
         'Completed Jobs History',
-
-        style: TextStyle(
-          fontSize: 24,
-          fontWeight:
-          FontWeight.bold,
-        ),
-      ),
-    );
-  }
-}
-
-class CleanerProfilePage
-    extends StatelessWidget {
-
-  const CleanerProfilePage(
-      {super.key});
-
-  @override
-  Widget build(BuildContext context) {
-
-    return const Center(
-
-      child: Text(
-
-        'Cleaner Profile',
 
         style: TextStyle(
           fontSize: 24,

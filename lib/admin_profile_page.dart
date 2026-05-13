@@ -4,29 +4,25 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 
-class CustomerProfilePage extends StatefulWidget {
-  const CustomerProfilePage({super.key});
+class AdminProfilePage extends StatefulWidget {
+  const AdminProfilePage({super.key});
 
   @override
-  State<CustomerProfilePage> createState() => _CustomerProfilePageState();
+  State<AdminProfilePage> createState() => _AdminProfilePageState();
 }
 
-class _CustomerProfilePageState extends State<CustomerProfilePage> {
+class _AdminProfilePageState extends State<AdminProfilePage> {
 
-  // ── Controllers ──────────────────────────────────────────
-  final _nameController    = TextEditingController();
-  final _phoneController   = TextEditingController();
-  final _addressController = TextEditingController();
+  final _nameController  = TextEditingController();
+  final _phoneController = TextEditingController();
 
-  // ── State ─────────────────────────────────────────────────
-  bool   _isLoading    = true;
-  bool   _isSaving     = false;
-  bool   _isEditMode   = false;
-  String _email        = '';
-  String _memberSince  = '';
-  String? _photoBase64;   // stored in Firestore as base64 string
+  bool   _isLoading   = true;
+  bool   _isSaving    = false;
+  bool   _isEditMode  = false;
+  String _email       = '';
+  String _memberSince = '';
+  String? _photoBase64;
 
-  // ─────────────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
@@ -37,28 +33,25 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
-    _addressController.dispose();
     super.dispose();
   }
 
-  // ── Load from Firestore ───────────────────────────────────
   Future<void> _loadProfile() async {
     setState(() => _isLoading = true);
 
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      final doc  = await FirebaseFirestore.instance
+      final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
           .get();
 
       if (doc.exists) {
         final data = doc.data()!;
-        _nameController.text    = data['full_name']  ?? '';
-        _phoneController.text   = data['phone']      ?? '';
-        _addressController.text = data['address']    ?? '';
-        _email                  = data['email']      ?? '';
-        _photoBase64            = data['photo_base64'];
+        _nameController.text  = data['full_name'] ?? '';
+        _phoneController.text = data['phone']     ?? '';
+        _email                = data['email']     ?? '';
+        _photoBase64          = data['photo_base64'];
 
         final createdAt = data['created_at'];
         if (createdAt is Timestamp) {
@@ -73,11 +66,9 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     }
   }
 
-  // ── Save to Firestore ─────────────────────────────────────
   Future<void> _saveProfile() async {
-    final name    = _nameController.text.trim();
-    final phone   = _phoneController.text.trim();
-    final address = _addressController.text.trim();
+    final name  = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
 
     if (name.isEmpty) {
       _showSnack('Full name cannot be empty', isError: true);
@@ -98,7 +89,6 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
       final Map<String, dynamic> updates = {
         'full_name':  name,
         'phone':      phone,
-        'address':    address,
         'updated_at': Timestamp.now(),
       };
 
@@ -120,7 +110,6 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     }
   }
 
-  // ── Pick profile photo (web + mobile compatible) ──────────
   Future<void> _pickPhoto() async {
     try {
       final picker = ImagePicker();
@@ -133,14 +122,12 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
 
       if (picked == null) return;
 
-      // ✅ picked.readAsBytes() works on web AND mobile
-      // dart:io File() does NOT work on web — don't use it
       final bytes  = await picked.readAsBytes();
       final base64 = base64Encode(bytes);
 
       if (base64.length > 800000) {
         _showSnack(
-          'Image too large. Please choose a smaller photo.',
+          'Image too large for storage. Try a lower-resolution photo.',
           isError: true,
         );
         return;
@@ -152,19 +139,15 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     }
   }
 
-  // ── Change password ───────────────────────────────────────
   Future<void> _sendPasswordReset() async {
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(
-        email: _email,
-      );
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: _email);
       _showSnack('Password reset email sent to $_email');
     } catch (e) {
       _showSnack('Failed to send reset email', isError: true);
     }
   }
 
-  // ── Helpers ───────────────────────────────────────────────
   void _showSnack(String msg, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -184,7 +167,6 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     return months[month];
   }
 
-  // ─────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -247,22 +229,18 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
         child: Column(
           children: [
 
-            // ── Avatar section ──────────────────────────────
             _buildAvatarSection(),
 
             const SizedBox(height: 24),
 
-            // ── Info card ───────────────────────────────────
             _buildInfoCard(),
 
             const SizedBox(height: 20),
 
-            // ── Account card ────────────────────────────────
             _buildAccountCard(),
 
             const SizedBox(height: 20),
 
-            // ── Save button ─────────────────────────────────
             if (_isEditMode) _buildSaveButton(),
 
             const SizedBox(height: 30),
@@ -272,14 +250,12 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     );
   }
 
-  // ── Avatar section ────────────────────────────────────────
   Widget _buildAvatarSection() {
     return Column(
       children: [
         Stack(
           alignment: Alignment.bottomRight,
           children: [
-            // Avatar circle
             Container(
               width: 110,
               height: 110,
@@ -312,7 +288,6 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
               ),
             ),
 
-            // Camera button — only in edit mode
             if (_isEditMode)
               GestureDetector(
                 onTap: _pickPhoto,
@@ -337,7 +312,7 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
         Text(
           _nameController.text.isNotEmpty
               ? _nameController.text
-              : 'Customer',
+              : 'Admin',
           style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
@@ -348,10 +323,7 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
 
         Text(
           _email,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.grey,
-          ),
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
         ),
 
         if (_memberSince.isNotEmpty) ...[
@@ -366,7 +338,7 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              'Member since $_memberSince',
+              'Admin since $_memberSince',
               style: const TextStyle(
                 color: Color(0xFF43A047),
                 fontSize: 12,
@@ -396,15 +368,11 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
 
   Widget _defaultAvatar() {
     return const Center(
-      child: Icon(
-        Icons.person,
-        color: Colors.white,
-        size: 55,
-      ),
+      child: Icon(Icons.admin_panel_settings,
+          color: Colors.white, size: 55),
     );
   }
 
-  // ── Personal info card ────────────────────────────────────
   Widget _buildInfoCard() {
     return _card(
       child: Column(
@@ -452,30 +420,11 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
                 ? _phoneController.text
                 : '—',
           ),
-
-          const Divider(height: 24),
-
-          _isEditMode
-              ? _editableField(
-            controller: _addressController,
-            label: 'Home Address',
-            icon: Icons.home_outlined,
-            inputType: TextInputType.streetAddress,
-            maxLines: 2,
-          )
-              : _infoRow(
-            icon: Icons.home_outlined,
-            label: 'Home Address',
-            value: _addressController.text.isNotEmpty
-                ? _addressController.text
-                : '—',
-          ),
         ],
       ),
     );
   }
 
-  // ── Account settings card ─────────────────────────────────
   Widget _buildAccountCard() {
     return _card(
       child: Column(
@@ -484,6 +433,7 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
           _cardTitle('Account Settings', Icons.settings_outlined),
           const SizedBox(height: 16),
 
+          // Change password
           GestureDetector(
             onTap: () => showDialog(
               context: context,
@@ -537,6 +487,7 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
 
           const Divider(height: 24),
 
+          // Account type
           Row(
             children: [
               Container(
@@ -546,7 +497,7 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
-                  Icons.badge_outlined,
+                  Icons.admin_panel_settings_outlined,
                   color: Color(0xFF43A047),
                   size: 22,
                 ),
@@ -565,7 +516,7 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'Customer',
+                      'Administrator',
                       style: TextStyle(
                         color: Color(0xFF43A047),
                         fontSize: 13,
@@ -582,7 +533,6 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     );
   }
 
-  // ── Save button ───────────────────────────────────────────
   Widget _buildSaveButton() {
     return SizedBox(
       width: double.infinity,
@@ -634,7 +584,6 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     );
   }
 
-  // ── Password reset dialog ─────────────────────────────────
   Widget _passwordResetDialog() {
     return AlertDialog(
       shape: RoundedRectangleBorder(
@@ -682,7 +631,6 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     );
   }
 
-  // ── Reusable sub-widgets ──────────────────────────────────
 
   Widget _card({required Widget child}) {
     return Container(
@@ -743,10 +691,7 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                ),
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
               const SizedBox(height: 2),
               Text(
@@ -768,12 +713,10 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
     required String label,
     required IconData icon,
     TextInputType inputType = TextInputType.text,
-    int maxLines = 1,
   }) {
     return TextField(
       controller: controller,
       keyboardType: inputType,
-      maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.grey),
