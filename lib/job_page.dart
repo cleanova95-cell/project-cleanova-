@@ -11,34 +11,23 @@ class JobsPage extends StatelessWidget {
     User? user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-
       backgroundColor: const Color(0xFFF1FFF3),
 
       body: StreamBuilder(
-
         stream: FirebaseFirestore.instance
             .collection('bookings')
-            .where(
-          'cleanerEmail',
-          isEqualTo: user?.email,
-        )
+            .where('cleanerId', isEqualTo: user?.uid)
             .snapshots(),
 
         builder: (context, snapshot) {
 
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
-
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(
-                color: Colors.green,
-              ),
+              child: CircularProgressIndicator(color: Colors.green),
             );
           }
 
-          if (!snapshot.hasData ||
-              snapshot.data!.docs.isEmpty) {
-
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
               child: Text(
                 'No Assigned Jobs Yet',
@@ -53,36 +42,30 @@ class JobsPage extends StatelessWidget {
           var bookings = snapshot.data!.docs;
 
           return ListView.builder(
-
             padding: const EdgeInsets.all(20),
-
             itemCount: bookings.length,
 
             itemBuilder: (context, index) {
 
               var booking = bookings[index];
+              final data = booking.data() as Map<String, dynamic>;
 
-              bool isCancelled =
-                  booking['status'] == 'Cancelled';
+              final service = data['service'] ?? '-';
+              final email = data['email'] ?? '-';
+              final address = data['address'] ?? '-';
+              final size = data['size'] ?? '-';
+              final price = data['price'] ?? 0;
+              final status = (data['status'] ?? 'Pending').toString();
 
-              bool isCompleted =
-                  booking['status'] == 'Completed';
+              bool isCancelled = status == 'Cancelled';
+              bool isCompleted = status == 'Completed';
 
               return Container(
-
-                margin: const EdgeInsets.only(
-                  bottom: 20,
-                ),
-
+                margin: const EdgeInsets.only(bottom: 20),
                 padding: const EdgeInsets.all(20),
-
                 decoration: BoxDecoration(
-
                   color: Colors.white,
-
-                  borderRadius:
-                  BorderRadius.circular(25),
-
+                  borderRadius: BorderRadius.circular(25),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.grey.shade200,
@@ -92,64 +75,47 @@ class JobsPage extends StatelessWidget {
                 ),
 
                 child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
 
                   children: [
 
                     Row(
-                      mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
                       children: [
 
                         Expanded(
                           child: Text(
-
-                            booking['service'],
-
+                            service,
                             style: const TextStyle(
                               fontSize: 22,
-                              fontWeight:
-                              FontWeight.bold,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
 
                         Container(
-
-                          padding:
-                          const EdgeInsets.symmetric(
+                          padding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 8,
                           ),
-
                           decoration: BoxDecoration(
-
                             color: isCancelled
                                 ? Colors.grey.shade300
                                 : isCompleted
                                 ? Colors.blue.shade100
                                 : Colors.green.shade100,
-
-                            borderRadius:
-                            BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(20),
                           ),
-
                           child: Text(
-
-                            booking['status'],
-
+                            status,
                             style: TextStyle(
-
                               color: isCancelled
                                   ? Colors.grey
                                   : isCompleted
                                   ? Colors.blue
                                   : Colors.green,
-
-                              fontWeight:
-                              FontWeight.bold,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -159,95 +125,83 @@ class JobsPage extends StatelessWidget {
 
                     const SizedBox(height: 18),
 
-                    infoRow(
-                      Icons.person,
-                      booking['email'],
-                    ),
-
+                    infoRow(Icons.person, email),
                     const SizedBox(height: 12),
-
-                    infoRow(
-                      Icons.location_on,
-                      booking['address'],
-                    ),
-
+                    infoRow(Icons.location_on, address),
                     const SizedBox(height: 12),
-
-                    infoRow(
-                      Icons.home_work,
-                      booking['size'],
-                    ),
-
+                    infoRow(Icons.home_work, size),
                     const SizedBox(height: 12),
-
-                    infoRow(
-                      Icons.attach_money,
-                      'RM ${booking['price']}',
-                    ),
+                    infoRow(Icons.attach_money, 'RM $price'),
 
                     const SizedBox(height: 25),
 
                     SizedBox(
-
                       width: double.infinity,
                       height: 55,
 
                       child: ElevatedButton(
-
-                        onPressed:
-                        isCancelled || isCompleted
+                        onPressed: isCancelled || isCompleted
                             ? null
                             : () async {
+
+                          final doc = await FirebaseFirestore.instance
+                              .collection('bookings')
+                              .doc(booking.id)
+                              .get();
+
+                          final data = doc.data();
+
+                          if (data?['cleanerId'] != user?.uid) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Not your job'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (data?['status'] != 'Assigned') {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Job not ready'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                            return;
+                          }
 
                           await FirebaseFirestore.instance
                               .collection('bookings')
                               .doc(booking.id)
                               .update({
-
                             'status': 'Completed',
-
-                            'updated_at':
-                            Timestamp.now(),
-
+                            'updated_at': Timestamp.now(),
                           });
 
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(
-
+                          ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text(
-                                'Job Marked As Completed',
-                              ),
-
-                              backgroundColor:
-                              Colors.green,
+                              content: Text('Job Marked As Completed'),
+                              backgroundColor: Colors.green,
                             ),
                           );
                         },
 
-                        style:
-                        ElevatedButton.styleFrom(
-
-                          backgroundColor:
-                          isCancelled || isCompleted
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isCancelled || isCompleted
                               ? Colors.grey
                               : Colors.green,
-
-                          shape:
-                          RoundedRectangleBorder(
-                            borderRadius:
-                            BorderRadius.circular(18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
                           ),
                         ),
 
                         child: Text(
-
                           isCancelled
                               ? 'Job Cancelled'
                               : isCompleted
                               ? 'Job Completed'
                               : 'Mark As Completed',
-
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 17,
@@ -267,31 +221,17 @@ class JobsPage extends StatelessWidget {
     );
   }
 
-  Widget infoRow(
-      IconData icon,
-      String text,
-      ) {
-
+  Widget infoRow(IconData icon, String text) {
     return Row(
       children: [
-
-        Icon(
-          icon,
-          color: Colors.green,
-          size: 20,
-        ),
-
+        Icon(icon, color: Colors.green, size: 20),
         const SizedBox(width: 10),
-
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
-              fontSize: 15,
-            ),
+            style: const TextStyle(fontSize: 15),
           ),
         ),
-
       ],
     );
   }

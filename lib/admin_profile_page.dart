@@ -180,72 +180,78 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF1FFF3),
 
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        elevation: 0,
-        centerTitle: true,
+      body: Column(
+        children: [
 
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF43A047), Color(0xFF66BB6A)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-
-        title: const Text(
-          'My Profile',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-
-        actions: [
-          if (!_isEditMode)
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.white),
-              tooltip: 'Edit Profile',
-              onPressed: () => setState(() => _isEditMode = true),
-            )
-          else
-            TextButton(
-              onPressed: () {
-                setState(() => _isEditMode = false);
-                _loadProfile(); // discard unsaved changes
-              },
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.white, fontSize: 15),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF43A047),
+                  Color(0xFF66BB6A),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+
+                const Text(
+                  'My Profile',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                if (!_isEditMode)
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.white),
+                    tooltip: 'Edit Profile',
+                    onPressed: () => setState(() => _isEditMode = true),
+                  )
+                else
+                  TextButton(
+                    onPressed: () {
+                      setState(() => _isEditMode = false);
+                      _loadProfile();
+                    },
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.white, fontSize: 15),
+                    ),
+                  ),
+
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+
+                  _buildAvatarSection(),
+                  const SizedBox(height: 24),
+                  _buildInfoCard(),
+                  const SizedBox(height: 20),
+                  _buildAccountCard(),
+                  const SizedBox(height: 20),
+                  if (_isEditMode) _buildSaveButton(),
+                  const SizedBox(height: 30),
+
+                ],
+              ),
+            ),
+          ),
+
         ],
-      ),
-
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-
-            _buildAvatarSection(),
-
-            const SizedBox(height: 24),
-
-            _buildInfoCard(),
-
-            const SizedBox(height: 20),
-
-            _buildAccountCard(),
-
-            const SizedBox(height: 20),
-
-            if (_isEditMode) _buildSaveButton(),
-
-            const SizedBox(height: 30),
-          ],
-        ),
       ),
     );
   }
@@ -310,13 +316,8 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
         const SizedBox(height: 14),
 
         Text(
-          _nameController.text.isNotEmpty
-              ? _nameController.text
-              : 'Admin',
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
+          _nameController.text.isNotEmpty ? _nameController.text : 'Admin',
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
 
         const SizedBox(height: 4),
@@ -329,10 +330,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
         if (_memberSince.isNotEmpty) ...[
           const SizedBox(height: 6),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 5,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
             decoration: BoxDecoration(
               color: const Color(0xFFE8F5E9),
               borderRadius: BorderRadius.circular(20),
@@ -368,8 +366,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
 
   Widget _defaultAvatar() {
     return const Center(
-      child: Icon(Icons.admin_panel_settings,
-          color: Colors.white, size: 55),
+      child: Icon(Icons.admin_panel_settings, color: Colors.white, size: 55),
     );
   }
 
@@ -391,9 +388,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
               : _infoRow(
             icon: Icons.person_outline,
             label: 'Full Name',
-            value: _nameController.text.isNotEmpty
-                ? _nameController.text
-                : '—',
+            value: _nameController.text.isNotEmpty ? _nameController.text : '—',
           ),
 
           const Divider(height: 24),
@@ -416,9 +411,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
               : _infoRow(
             icon: Icons.phone_outlined,
             label: 'Phone Number',
-            value: _phoneController.text.isNotEmpty
-                ? _phoneController.text
-                : '—',
+            value: _phoneController.text.isNotEmpty ? _phoneController.text : '—',
           ),
         ],
       ),
@@ -433,7 +426,6 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
           _cardTitle('Account Settings', Icons.settings_outlined),
           const SizedBox(height: 16),
 
-          // Change password
           GestureDetector(
             onTap: () => showDialog(
               context: context,
@@ -447,47 +439,26 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
                     color: const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
-                    Icons.lock_outline,
-                    color: Color(0xFF43A047),
-                    size: 22,
-                  ),
+                  child: const Icon(Icons.lock_outline, color: Color(0xFF43A047), size: 22),
                 ),
                 const SizedBox(width: 16),
                 const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Change Password',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
+                      Text('Change Password', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                       SizedBox(height: 2),
-                      Text(
-                        'A reset link will be sent to your email',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
+                      Text('A reset link will be sent to your email', style: TextStyle(color: Colors.grey, fontSize: 12)),
                     ],
                   ),
                 ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.grey,
-                  size: 14,
-                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 14),
               ],
             ),
           ),
 
           const Divider(height: 24),
 
-          // Account type
           Row(
             children: [
               Container(
@@ -496,33 +467,16 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
                   color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.admin_panel_settings_outlined,
-                  color: Color(0xFF43A047),
-                  size: 22,
-                ),
+                child: const Icon(Icons.admin_panel_settings_outlined, color: Color(0xFF43A047), size: 22),
               ),
               const SizedBox(width: 16),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Account Type',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                    ),
+                    Text('Account Type', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                     SizedBox(height: 2),
-                    Text(
-                      'Administrator',
-                      style: TextStyle(
-                        color: Color(0xFF43A047),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    Text('Administrator', style: TextStyle(color: Color(0xFF43A047), fontSize: 13, fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -558,26 +512,17 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           ),
           child: _isSaving
               ? const SizedBox(
             width: 22,
             height: 22,
-            child: CircularProgressIndicator(
-              color: Colors.white,
-              strokeWidth: 2.5,
-            ),
+            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
           )
               : const Text(
             'Save Changes',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
           ),
         ),
       ),
@@ -586,17 +531,12 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
 
   Widget _passwordResetDialog() {
     return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: const Row(
         children: [
           Icon(Icons.lock_outline, color: Color(0xFF43A047)),
           SizedBox(width: 10),
-          Text(
-            'Change Password',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text('Change Password', style: TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
       content: Text(
@@ -606,10 +546,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text(
-            'Cancel',
-            style: TextStyle(color: Colors.grey),
-          ),
+          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
         ),
         ElevatedButton(
           onPressed: () {
@@ -618,19 +555,13 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF43A047),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
-          child: const Text(
-            'Send Link',
-            style: TextStyle(color: Colors.white),
-          ),
+          child: const Text('Send Link', style: TextStyle(color: Colors.white)),
         ),
       ],
     );
   }
-
 
   Widget _card({required Widget child}) {
     return Container(
@@ -640,11 +571,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.grey.shade200, blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: child,
@@ -656,32 +583,18 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
       children: [
         Icon(icon, color: const Color(0xFF43A047), size: 20),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2E7D32),
-          ),
-        ),
+        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
       ],
     );
   }
 
-  Widget _infoRow({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
+  Widget _infoRow({required IconData icon, required String label, required String value}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE8F5E9),
-            borderRadius: BorderRadius.circular(10),
-          ),
+          decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(10)),
           child: Icon(icon, color: const Color(0xFF43A047), size: 20),
         ),
         const SizedBox(width: 14),
@@ -689,18 +602,9 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                label,
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
+              Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
               const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
             ],
           ),
         ),
@@ -723,16 +627,10 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
         prefixIcon: Icon(icon, color: const Color(0xFF43A047)),
         filled: true,
         fillColor: const Color(0xFFF2F2F2),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: Color(0xFF43A047),
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: Color(0xFF43A047), width: 1.5),
         ),
       ),
     );

@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_page.dart';
 import 'booking_management_page.dart';
 import 'admin_profile_page.dart';
+import 'pricing_management_page.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -26,6 +27,8 @@ class _AdminDashboardState
     const UsersPage(),
 
     const BookingManagementPage(),
+
+    const PricingManagementPage(),
 
     const AdminProfilePage(),
 
@@ -222,6 +225,11 @@ class _AdminDashboardState
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment),
             label: 'Bookings',
+          ),
+
+          BottomNavigationBarItem(
+            icon: Icon(Icons.attach_money),
+            label: 'Pricing',
           ),
 
           BottomNavigationBarItem(

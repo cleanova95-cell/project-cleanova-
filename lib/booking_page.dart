@@ -19,27 +19,37 @@ class _BookingPageState extends State<BookingPage> {
   final TextEditingController addressController =
   TextEditingController();
 
-  Map<String, Map<String, int>> prices = {
+  // CHANGED: fetch dari Firestore, bukan hardcoded
+  Map<String, dynamic> prices = {};
+  bool isLoadingPrices = true;
 
-    'House Cleaning': {
-      'Small': 80,
-      'Medium': 120,
-      'Large': 180,
-    },
+  @override
+  void initState() {
+    super.initState();
+    _fetchPrices();
+  }
 
-    'Deep Cleaning': {
-      'Small': 150,
-      'Medium': 220,
-      'Large': 300,
-    },
+  Future<void> _fetchPrices() async {
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('service_prices')
+        .get();
 
-    'Office Cleaning': {
-      'Small': 200,
-      'Medium': 350,
-      'Large': 500,
-    },
+    Map<String, dynamic> loadedPrices = {};
 
-  };
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      loadedPrices[doc.id] = {
+        'Small': data['smallPrice'] ?? 0,
+        'Medium': data['mediumPrice'] ?? 0,
+        'Large': data['largePrice'] ?? 0,
+      };
+    }
+
+    setState(() {
+      prices = loadedPrices;
+      isLoadingPrices = false;
+    });
+  }
 
   Future<void> pickDate() async {
 
@@ -51,11 +61,9 @@ class _BookingPageState extends State<BookingPage> {
     );
 
     if (pickedDate != null) {
-
       setState(() {
         selectedDate = pickedDate;
       });
-
     }
   }
 
@@ -65,53 +73,42 @@ class _BookingPageState extends State<BookingPage> {
         addressController.text.isEmpty) {
 
       ScaffoldMessenger.of(context).showSnackBar(
-
         const SnackBar(
-          content: Text(
-            'Please complete all booking details',
-          ),
+          content: Text('Please complete all booking details'),
           backgroundColor: Colors.red,
         ),
-
       );
 
       return;
     }
 
-    User? user =
-        FirebaseAuth.instance.currentUser;
+    int totalPrice = 0;
+    if (prices.isNotEmpty && prices[selectedService] != null) {
+      totalPrice = prices[selectedService][selectedSize] ?? 0;
+    }
+
+    User? user = FirebaseAuth.instance.currentUser;
 
     await FirebaseFirestore.instance
         .collection('bookings')
         .add({
-
       'userId': user!.uid,
       'email': user.email,
-
       'service': selectedService,
       'size': selectedSize,
-
-      'price':
-      prices[selectedService]![selectedSize],
-
+      'price': totalPrice,
       'address': addressController.text,
-
-      'bookingDate': selectedDate,
-
+      'bookingDate': Timestamp.fromDate(selectedDate!),
       'status': 'Pending',
-
       'created_at': Timestamp.now(),
       'updated_at': Timestamp.now(),
-
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-
       const SnackBar(
         content: Text('Booking Successful'),
         backgroundColor: Colors.green,
       ),
-
     );
 
     addressController.clear();
@@ -126,8 +123,10 @@ class _BookingPageState extends State<BookingPage> {
   @override
   Widget build(BuildContext context) {
 
-    int totalPrice =
-    prices[selectedService]![selectedSize]!;
+    int totalPrice = 0;
+    if (prices.isNotEmpty && prices[selectedService] != null) {
+      totalPrice = prices[selectedService][selectedSize] ?? 0;
+    }
 
     return Scaffold(
 
@@ -136,7 +135,6 @@ class _BookingPageState extends State<BookingPage> {
       appBar: AppBar(
 
         automaticallyImplyLeading: false,
-
         elevation: 0,
 
         flexibleSpace: Container(
@@ -161,13 +159,16 @@ class _BookingPageState extends State<BookingPage> {
         ),
       ),
 
-      body: SingleChildScrollView(
+      body: isLoadingPrices
+          ? const Center(
+        child: CircularProgressIndicator(color: Colors.green),
+      )
+          : SingleChildScrollView(
 
         padding: const EdgeInsets.all(20),
 
         child: Column(
-          crossAxisAlignment:
-          CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
 
           children: [
 
@@ -344,15 +345,11 @@ class _BookingPageState extends State<BookingPage> {
             const SizedBox(height: 15),
 
             Row(
-              mainAxisAlignment:
-              MainAxisAlignment.spaceBetween,
-
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-
                 sizeButton('Small'),
                 sizeButton('Medium'),
                 sizeButton('Large'),
-
               ],
             ),
 
@@ -369,19 +366,13 @@ class _BookingPageState extends State<BookingPage> {
             const SizedBox(height: 15),
 
             GestureDetector(
-
               onTap: pickDate,
-
               child: Container(
-
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
-
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius:
-                  BorderRadius.circular(20),
-
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.grey.shade200,
@@ -389,28 +380,19 @@ class _BookingPageState extends State<BookingPage> {
                     ),
                   ],
                 ),
-
                 child: Row(
                   children: [
-
                     const Icon(
                       Icons.calendar_month,
                       color: Colors.green,
                     ),
-
                     const SizedBox(width: 15),
-
                     Text(
-
                       selectedDate == null
                           ? 'Select Booking Date'
                           : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
-
-                      style: const TextStyle(
-                        fontSize: 16,
-                      ),
+                      style: const TextStyle(fontSize: 16),
                     ),
-
                   ],
                 ),
               ),
@@ -429,21 +411,14 @@ class _BookingPageState extends State<BookingPage> {
             const SizedBox(height: 15),
 
             TextField(
-
               controller: addressController,
               maxLines: 3,
-
               decoration: InputDecoration(
-
                 hintText: 'Enter your address',
-
                 filled: true,
                 fillColor: Colors.white,
-
                 border: OutlineInputBorder(
-                  borderRadius:
-                  BorderRadius.circular(20),
-
+                  borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide.none,
                 ),
               ),
@@ -452,34 +427,22 @@ class _BookingPageState extends State<BookingPage> {
             const SizedBox(height: 30),
 
             Container(
-
               padding: const EdgeInsets.all(20),
-
               decoration: BoxDecoration(
-
                 gradient: const LinearGradient(
                   colors: [
                     Color(0xFF43A047),
                     Color(0xFF66BB6A),
                   ],
                 ),
-
-                borderRadius:
-                BorderRadius.circular(25),
+                borderRadius: BorderRadius.circular(25),
               ),
-
               child: Row(
-                mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
-
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-
                   const Column(
-                    crossAxisAlignment:
-                    CrossAxisAlignment.start,
-
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       Text(
                         'Total Price',
                         style: TextStyle(
@@ -487,12 +450,9 @@ class _BookingPageState extends State<BookingPage> {
                           fontSize: 16,
                         ),
                       ),
-
                       SizedBox(height: 8),
-
                     ],
                   ),
-
                   Text(
                     'RM$totalPrice',
                     style: const TextStyle(
@@ -501,7 +461,6 @@ class _BookingPageState extends State<BookingPage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                 ],
               ),
             ),
@@ -509,27 +468,18 @@ class _BookingPageState extends State<BookingPage> {
             const SizedBox(height: 30),
 
             SizedBox(
-
               width: double.infinity,
               height: 60,
-
               child: ElevatedButton(
-
                 onPressed: () async {
-
                   await saveBooking();
-
                 },
-
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
-
                   shape: RoundedRectangleBorder(
-                    borderRadius:
-                    BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                 ),
-
                 child: const Text(
                   'Book Now',
                   style: TextStyle(
@@ -556,41 +506,23 @@ class _BookingPageState extends State<BookingPage> {
       String infoText,
       ) {
 
-    bool isSelected =
-        selectedService == title;
+    bool isSelected = selectedService == title;
 
     return GestureDetector(
-
       onTap: () {
-
         setState(() {
           selectedService = title;
         });
-
       },
-
       child: Container(
-
         padding: const EdgeInsets.all(20),
-
         decoration: BoxDecoration(
-
-          color:
-          isSelected
-              ? Colors.green.shade100
-              : Colors.white,
-
-          borderRadius:
-          BorderRadius.circular(20),
-
+          color: isSelected ? Colors.green.shade100 : Colors.white,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color:
-            isSelected
-                ? Colors.green
-                : Colors.transparent,
+            color: isSelected ? Colors.green : Colors.transparent,
             width: 2,
           ),
-
           boxShadow: [
             BoxShadow(
               color: Colors.grey.shade200,
@@ -598,18 +530,10 @@ class _BookingPageState extends State<BookingPage> {
             ),
           ],
         ),
-
         child: Row(
           children: [
-
-            Icon(
-              icon,
-              color: Colors.green,
-              size: 35,
-            ),
-
+            Icon(icon, color: Colors.green, size: 35),
             const SizedBox(width: 20),
-
             Expanded(
               child: Text(
                 title,
@@ -619,7 +543,6 @@ class _BookingPageState extends State<BookingPage> {
                 ),
               ),
             ),
-
             GestureDetector(
               onTap: () {
                 showDialog(
@@ -677,15 +600,10 @@ class _BookingPageState extends State<BookingPage> {
                 ),
               ),
             ),
-
             if (isSelected) ...[
               const SizedBox(width: 8),
-              const Icon(
-                Icons.check_circle,
-                color: Colors.green,
-              ),
+              const Icon(Icons.check_circle, color: Colors.green),
             ],
-
           ],
         ),
       ),
@@ -694,29 +612,18 @@ class _BookingPageState extends State<BookingPage> {
 
   Widget sizeButton(String size) {
 
-    bool isSelected =
-        selectedSize == size;
+    bool isSelected = selectedSize == size;
 
     return GestureDetector(
-
       onTap: () {
-
         setState(() {
           selectedSize = size;
         });
-
       },
-
       child: Container(
-
         width: 100,
-
-        padding: const EdgeInsets.symmetric(
-          vertical: 15,
-        ),
-
+        padding: const EdgeInsets.symmetric(vertical: 15),
         decoration: BoxDecoration(
-
           gradient: isSelected
               ? const LinearGradient(
             colors: [
@@ -725,15 +632,8 @@ class _BookingPageState extends State<BookingPage> {
             ],
           )
               : null,
-
-          color:
-          isSelected
-              ? null
-              : Colors.white,
-
-          borderRadius:
-          BorderRadius.circular(18),
-
+          color: isSelected ? null : Colors.white,
+          borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
               color: Colors.grey.shade200,
@@ -741,16 +641,11 @@ class _BookingPageState extends State<BookingPage> {
             ),
           ],
         ),
-
         child: Center(
           child: Text(
             size,
             style: TextStyle(
-              color:
-              isSelected
-                  ? Colors.white
-                  : Colors.black,
-
+              color: isSelected ? Colors.white : Colors.black,
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
