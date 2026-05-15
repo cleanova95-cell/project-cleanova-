@@ -6,6 +6,7 @@ import 'login_page.dart';
 import 'booking_management_page.dart';
 import 'admin_profile_page.dart';
 import 'pricing_management_page.dart';
+import 'user_page.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -21,17 +22,11 @@ class _AdminDashboardState
   int currentIndex = 0;
 
   final List pages = [
-
     const AdminHomePage(),
-
     const UsersPage(),
-
     const BookingManagementPage(),
-
     const PricingManagementPage(),
-
     const AdminProfilePage(),
-
   ];
 
   Future<void> logoutUser() async {
@@ -183,6 +178,7 @@ class _AdminDashboardState
           : null,
 
       body: SafeArea(
+        top: currentIndex == 0,
         child: pages[currentIndex],
       ),
 
@@ -807,30 +803,6 @@ class AdminHomePage
           ),
 
         ],
-      ),
-    );
-  }
-}
-
-class UsersPage
-    extends StatelessWidget {
-
-  const UsersPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-
-    return const Center(
-
-      child: Text(
-
-        'Manage Customers & Cleaners',
-
-        style: TextStyle(
-          fontSize: 24,
-          fontWeight:
-          FontWeight.bold,
-        ),
       ),
     );
   }

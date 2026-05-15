@@ -33,6 +33,10 @@ class _PricingManagementPageState
   ];
 
   Map<String, Map<String, TextEditingController>> controllers = {};
+
+  // ✅ TAMBAH: Store original prices
+  Map<String, Map<String, int>> originalPrices = {};
+
   bool isLoading = true;
 
   @override
@@ -50,6 +54,8 @@ class _PricingManagementPageState
         'Medium': TextEditingController(),
         'Large': TextEditingController(),
       };
+      // ✅ TAMBAH: Init original prices
+      originalPrices[id] = {'Small': 0, 'Medium': 0, 'Large': 0};
     }
   }
 
@@ -63,18 +69,157 @@ class _PricingManagementPageState
 
       if (doc.exists) {
         final data = doc.data()!;
-        controllers[id]!['Small']!.text =
-            (data['smallPrice'] ?? 0).toString();
-        controllers[id]!['Medium']!.text =
-            (data['mediumPrice'] ?? 0).toString();
-        controllers[id]!['Large']!.text =
-            (data['largePrice'] ?? 0).toString();
+        final small = (data['smallPrice'] ?? 0) as int;
+        final medium = (data['mediumPrice'] ?? 0) as int;
+        final large = (data['largePrice'] ?? 0) as int;
+
+        controllers[id]!['Small']!.text = small.toString();
+        controllers[id]!['Medium']!.text = medium.toString();
+        controllers[id]!['Large']!.text = large.toString();
+
+        // ✅ TAMBAH: Save original prices
+        originalPrices[id] = {
+          'Small': small,
+          'Medium': medium,
+          'Large': large,
+        };
       }
     }
 
     setState(() {
       isLoading = false;
     });
+  }
+
+  // ✅ TAMBAH: Show confirmation dialog before saving
+  Future<void> _confirmAndSave(String serviceId, String serviceTitle) async {
+    final newSmall = int.tryParse(controllers[serviceId]!['Small']!.text) ?? 0;
+    final newMedium = int.tryParse(controllers[serviceId]!['Medium']!.text) ?? 0;
+    final newLarge = int.tryParse(controllers[serviceId]!['Large']!.text) ?? 0;
+
+    final oldSmall = originalPrices[serviceId]!['Small']!;
+    final oldMedium = originalPrices[serviceId]!['Medium']!;
+    final oldLarge = originalPrices[serviceId]!['Large']!;
+
+    // Build list of changes
+    final List<Map<String, dynamic>> changes = [];
+    if (newSmall != oldSmall) {
+      changes.add({'label': 'Small', 'old': oldSmall, 'new': newSmall});
+    }
+    if (newMedium != oldMedium) {
+      changes.add({'label': 'Medium', 'old': oldMedium, 'new': newMedium});
+    }
+    if (newLarge != oldLarge) {
+      changes.add({'label': 'Large', 'old': oldLarge, 'new': newLarge});
+    }
+
+    // No changes made
+    if (changes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No changes detected.')),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.edit_note, color: primaryGreen),
+            const SizedBox(width: 8),
+            const Text(
+              'Confirm Changes',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to update $serviceTitle pricing?',
+              style: const TextStyle(fontSize: 14, color: Colors.black54),
+            ),
+            const SizedBox(height: 16),
+            ...changes.map((change) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      change['label'],
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: primaryGreen,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'RM ${change['old']}',
+                    style: const TextStyle(
+                      color: Colors.red,
+                      decoration: TextDecoration.lineThrough,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6),
+                    child: Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
+                  ),
+                  Text(
+                    'RM ${change['new']}',
+                    style: TextStyle(
+                      color: primaryGreen,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            )),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryGreen,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Yes, Save',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _savePrices(serviceId);
+      // ✅ TAMBAH: Update original prices after save
+      originalPrices[serviceId] = {
+        'Small': newSmall,
+        'Medium': newMedium,
+        'Large': newLarge,
+      };
+    }
   }
 
   Future<void> _savePrices(String serviceId) async {
@@ -115,19 +260,14 @@ class _PricingManagementPageState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1FFF3),
-
       body: Column(
         children: [
-
           Container(
             width: double.infinity,
             padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Color(0xFF43A047),
-                  Color(0xFF66BB6A),
-                ],
+                colors: [Color(0xFF43A047), Color(0xFF66BB6A)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -137,38 +277,22 @@ class _PricingManagementPageState
               children: [
                 Text(
                   'Pricing Management',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 SizedBox(height: 8),
                 Text(
                   'Update service pricing',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white70,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.white70),
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 15),
-
           isLoading
-              ? const Expanded(
-            child: Center(
-              child: CircularProgressIndicator(),
-            ),
-          )
+              ? const Expanded(child: Center(child: CircularProgressIndicator()))
               : Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 15,
-                vertical: 10,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
               itemCount: services.length,
               itemBuilder: (context, index) {
                 final service = services[index];
@@ -194,7 +318,6 @@ class _PricingManagementPageState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
                         Row(
                           children: [
                             Container(
@@ -203,33 +326,22 @@ class _PricingManagementPageState
                                 color: const Color(0xFFE8F5E9),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: Icon(
-                                icon,
-                                color: primaryGreen,
-                                size: 26,
-                              ),
+                              child: Icon(icon, color: primaryGreen, size: 26),
                             ),
                             const SizedBox(width: 12),
                             Text(
                               title,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 20),
-
                         _priceField('Small', controllers[id]!['Small']!),
                         const SizedBox(height: 12),
                         _priceField('Medium', controllers[id]!['Medium']!),
                         const SizedBox(height: 12),
                         _priceField('Large', controllers[id]!['Large']!),
-
                         const SizedBox(height: 20),
-
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
@@ -240,7 +352,8 @@ class _PricingManagementPageState
                                 borderRadius: BorderRadius.circular(15),
                               ),
                             ),
-                            onPressed: () => _savePrices(id),
+
+                            onPressed: () => _confirmAndSave(id, title),
                             icon: const Icon(Icons.save, color: Colors.white),
                             label: const Text(
                               'Save Pricing',
@@ -252,7 +365,6 @@ class _PricingManagementPageState
                             ),
                           ),
                         ),
-
                       ],
                     ),
                   ),
@@ -270,13 +382,7 @@ class _PricingManagementPageState
       children: [
         SizedBox(
           width: 80,
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
-          ),
+          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -285,10 +391,7 @@ class _PricingManagementPageState
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               prefixText: 'RM ',
-              prefixStyle: TextStyle(
-                color: primaryGreen,
-                fontWeight: FontWeight.bold,
-              ),
+              prefixStyle: TextStyle(color: primaryGreen, fontWeight: FontWeight.bold),
               filled: true,
               fillColor: const Color(0xFFF1FFF3),
               border: OutlineInputBorder(
@@ -303,10 +406,7 @@ class _PricingManagementPageState
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: primaryGreen, width: 2),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
-              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),
           ),
         ),
