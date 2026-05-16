@@ -10,214 +10,239 @@ class JobsPage extends StatelessWidget {
 
     User? user = FirebaseAuth.instance.currentUser;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF1FFF3),
+    return StreamBuilder(
+      stream: FirebaseFirestore.instance
+          .collection('bookings')
+          .where('cleanerId', isEqualTo: user?.uid)
+          .snapshots(),
 
-      body: StreamBuilder(
-        stream: FirebaseFirestore.instance
-            .collection('bookings')
-            .where('cleanerId', isEqualTo: user?.uid)
-            .snapshots(),
+      builder: (context, snapshot) {
 
-        builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.green),
+          );
+        }
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.green),
-            );
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text(
-                'No Assigned Jobs Yet',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            );
-          }
-
-          var bookings = snapshot.data!.docs;
-
-          return ListView.builder(
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
-            itemCount: bookings.length,
-
-            itemBuilder: (context, index) {
-
-              var booking = bookings[index];
-              final data = booking.data() as Map<String, dynamic>;
-
-              final service = data['service'] ?? '-';
-              final email = data['email'] ?? '-';
-              final address = data['address'] ?? '-';
-              final size = data['size'] ?? '-';
-              final price = data['price'] ?? 0;
-              final status = (data['status'] ?? 'Pending').toString();
-
-              bool isCancelled = status == 'Cancelled';
-              bool isCompleted = status == 'Completed';
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 20),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(25),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.shade200,
-                      blurRadius: 8,
-                    ),
-                  ],
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(30),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(color: Colors.grey.shade200, blurRadius: 8),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.inbox_outlined, size: 70, color: Colors.green.shade200),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'No Jobs Assigned Yet',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'You have no jobs at the moment.\nSit tight — new jobs will appear here once assigned!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                          height: 1.6,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+              ],
+            ),
+          );
+        }
 
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        var bookings = snapshot.data!.docs;
 
-                  children: [
+        return ListView.builder(
+          padding: const EdgeInsets.all(20),
+          itemCount: bookings.length,
 
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          itemBuilder: (context, index) {
 
-                      children: [
+            var booking = bookings[index];
+            final data = booking.data() as Map<String, dynamic>;
 
-                        Expanded(
-                          child: Text(
-                            service,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+            final service = data['service'] ?? '-';
+            final email   = data['email']   ?? '-';
+            final address = data['address'] ?? '-';
+            final size    = data['size']    ?? '-';
+            final price   = data['price']   ?? 0;
+            final status  = (data['status'] ?? 'Pending').toString();
 
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isCancelled
-                                ? Colors.grey.shade300
-                                : isCompleted
-                                ? Colors.blue.shade100
-                                : Colors.green.shade100,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            status,
-                            style: TextStyle(
-                              color: isCancelled
-                                  ? Colors.grey
-                                  : isCompleted
-                                  ? Colors.blue
-                                  : Colors.green,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+            bool isCancelled = status == 'Cancelled';
+            bool isCompleted = status == 'Completed';
 
-                      ],
-                    ),
+            return Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.shade200,
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
 
-                    const SizedBox(height: 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
 
-                    infoRow(Icons.person, email),
-                    const SizedBox(height: 12),
-                    infoRow(Icons.location_on, address),
-                    const SizedBox(height: 12),
-                    infoRow(Icons.home_work, size),
-                    const SizedBox(height: 12),
-                    infoRow(Icons.attach_money, 'RM $price'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
 
-                    const SizedBox(height: 25),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-
-                      child: ElevatedButton(
-                        onPressed: isCancelled || isCompleted
-                            ? null
-                            : () async {
-
-                          final doc = await FirebaseFirestore.instance
-                              .collection('bookings')
-                              .doc(booking.id)
-                              .get();
-
-                          final data = doc.data();
-
-                          if (data?['cleanerId'] != user?.uid) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Not your job'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (data?['status'] != 'Assigned') {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Job not ready'),
-                                backgroundColor: Colors.orange,
-                              ),
-                            );
-                            return;
-                          }
-
-                          await FirebaseFirestore.instance
-                              .collection('bookings')
-                              .doc(booking.id)
-                              .update({
-                            'status': 'Completed',
-                            'updated_at': Timestamp.now(),
-                          });
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Job Marked As Completed'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        },
-
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isCancelled || isCompleted
-                              ? Colors.grey
-                              : Colors.green,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                        ),
-
+                      Expanded(
                         child: Text(
-                          isCancelled
-                              ? 'Job Cancelled'
-                              : isCompleted
-                              ? 'Job Completed'
-                              : 'Mark As Completed',
+                          service,
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 17,
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                    ),
 
-                  ],
-                ),
-              );
-            },
-          );
-        },
-      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isCancelled
+                              ? Colors.grey.shade300
+                              : isCompleted
+                              ? Colors.blue.shade100
+                              : Colors.green.shade100,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          status,
+                          style: TextStyle(
+                            color: isCancelled
+                                ? Colors.grey
+                                : isCompleted
+                                ? Colors.blue
+                                : Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+
+                    ],
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  infoRow(Icons.person,       email),
+                  const SizedBox(height: 12),
+                  infoRow(Icons.location_on,  address),
+                  const SizedBox(height: 12),
+                  infoRow(Icons.home_work,    size),
+                  const SizedBox(height: 12),
+                  infoRow(Icons.attach_money, 'RM $price'),
+
+                  const SizedBox(height: 25),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton(
+                      onPressed: isCancelled || isCompleted
+                          ? null
+                          : () async {
+
+                        final doc = await FirebaseFirestore.instance
+                            .collection('bookings')
+                            .doc(booking.id)
+                            .get();
+
+                        final data = doc.data();
+
+                        if (data?['cleanerId'] != user?.uid) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Not your job'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        if (data?['status'] != 'Assigned') {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Job not ready'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                          return;
+                        }
+
+                        await FirebaseFirestore.instance
+                            .collection('bookings')
+                            .doc(booking.id)
+                            .update({
+                          'status': 'Completed',
+                          'updated_at': Timestamp.now(),
+                        });
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Job Marked As Completed'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      },
+
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isCancelled || isCompleted
+                            ? Colors.grey
+                            : Colors.green,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+
+                      child: Text(
+                        isCancelled
+                            ? 'Job Cancelled'
+                            : isCompleted
+                            ? 'Job Completed'
+                            : 'Mark As Completed',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

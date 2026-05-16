@@ -20,239 +20,236 @@ class _BookingManagementPageState
     return Scaffold(
       backgroundColor: const Color(0xFFF1FFF3),
 
-      body: Column(
-        children: [
+      appBar: AppBar(
+        elevation: 0,
+        centerTitle: true,
+        automaticallyImplyLeading: false,
 
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF43A047),
-                  Color(0xFF66BB6A),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Booking Management',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Manage all customer bookings',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white70,
-                  ),
-                ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF43A047),
+                Color(0xFF66BB6A),
               ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
+        ),
 
-          const SizedBox(height: 15),
+        title: const Text(
+          'Booking Management',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
 
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('bookings')
-                  .orderBy('created_at', descending: true)
-                  .snapshots(),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('bookings')
+            .orderBy('created_at', descending: true)
+            .snapshots(),
 
-              builder: (context, snapshot) {
+        builder: (context, snapshot) {
 
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No bookings found',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                      ),
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                'No bookings found',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            );
+          }
+
+          final bookings = snapshot.data!.docs;
+
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 15,
+              vertical: 10,
+            ),
+            itemCount: bookings.length,
+
+            itemBuilder: (context, index) {
+
+              final booking = bookings[index];
+              final data = booking.data() as Map<String, dynamic>;
+              final bookingId = booking.id;
+
+              final customerEmail = data['email'] ?? 'No Email';
+              final serviceType = data['service'] ?? 'No Service';
+              final propertySize = data['size'] ?? 'No Size';
+              final status = data['status'] ?? 'Pending';
+              final address = data['address'] ?? 'No Address';
+              final cleanerName = data['cleanerName'] ?? 'Not Assigned';
+
+              Timestamp? timestamp = data['bookingDate'];
+              String bookingDate = 'No Date';
+
+              if (timestamp != null) {
+                final date = timestamp.toDate();
+                bookingDate = '${date.day}/${date.month}/${date.year}';
+              }
+
+              final bool isFrozen =
+                  status == 'Cancelled' || status == 'Completed';
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.shade200,
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
                     ),
-                  );
-                }
+                  ],
+                ),
 
-                final bookings = snapshot.data!.docs;
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
 
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                  itemCount: bookings.length,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
 
-                  itemBuilder: (context, index) {
+                      Row(
+                        mainAxisAlignment:
+                        MainAxisAlignment.spaceBetween,
+                        children: [
 
-                    final booking = bookings[index];
-                    final data = booking.data() as Map<String, dynamic>;
-                    final bookingId = booking.id;
-
-                    final customerEmail = data['email'] ?? 'No Email';
-                    final serviceType = data['service'] ?? 'No Service';
-                    final propertySize = data['size'] ?? 'No Size';
-                    final status = data['status'] ?? 'Pending';
-                    final address = data['address'] ?? 'No Address';
-
-                    final cleanerName = data['cleanerName'] ?? 'Not Assigned';
-
-                    Timestamp? timestamp = data['bookingDate'];
-                    String bookingDate = 'No Date';
-
-                    if (timestamp != null) {
-                      final date = timestamp.toDate();
-                      bookingDate = '${date.day}/${date.month}/${date.year}';
-                    }
-
-                    final bool isFrozen =
-                        status == 'Cancelled' || status == 'Completed';
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(25),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.shade200,
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
+                          Expanded(
+                            child: Text(
+                              customerEmail,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
+
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: getStatusColor(status),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              status,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+
                         ],
                       ),
 
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
+                      const SizedBox(height: 18),
 
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                      bookingInfo(Icons.cleaning_services, 'Service Type', serviceType),
+                      bookingInfo(Icons.home_work, 'Property Size', propertySize),
+                      bookingInfo(Icons.calendar_month, 'Booking Date', bookingDate),
+                      bookingInfo(Icons.location_on, 'Address', address),
+                      bookingInfo(Icons.person, 'Cleaner', cleanerName),
 
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
+                      const SizedBox(height: 20),
 
-                                Expanded(
-                                  child: Text(
-                                    customerEmail,
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                      Row(
+                        children: [
+
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
                                 ),
-
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: getStatusColor(status),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    status,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
                                 ),
-
-                              ],
+                              ),
+                              onPressed: isFrozen
+                                  ? null
+                                  : () {
+                                showStatusDialog(
+                                    context, bookingId, status);
+                              },
+                              icon: const Icon(
+                                Icons.update,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                'Update',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
+                          ),
 
-                            const SizedBox(height: 18),
+                          const SizedBox(width: 10),
 
-                            bookingInfo(Icons.cleaning_services, 'Service Type', serviceType),
-                            bookingInfo(Icons.home_work, 'Property Size', propertySize),
-                            bookingInfo(Icons.calendar_month, 'Booking Date', bookingDate),
-                            bookingInfo(Icons.location_on, 'Address', address),
-                            bookingInfo(Icons.person, 'Cleaner', cleanerName),
-
-                            const SizedBox(height: 20),
-
-                            Row(
-                              children: [
-
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue,
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(15),
-                                      ),
-                                    ),
-                                    onPressed: isFrozen
-                                        ? null
-                                        : () {
-                                      showStatusDialog(context, bookingId, status);
-                                    },
-                                    icon: const Icon(Icons.update, color: Colors.white),
-                                    label: const Text(
-                                      'Update',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: primaryGreen,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
                                 ),
-
-                                const SizedBox(width: 10),
-
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: primaryGreen,
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(15),
-                                      ),
-                                    ),
-                                    onPressed: isFrozen
-                                        ? null
-                                        : () {
-                                      showAssignCleanerDialog(context, bookingId);
-                                    },
-                                    icon: const Icon(Icons.person_add, color: Colors.white),
-                                    label: const Text(
-                                      'Assign',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
                                 ),
-
-                              ],
+                              ),
+                              onPressed: isFrozen
+                                  ? null
+                                  : () {
+                                showAssignCleanerDialog(
+                                    context, bookingId);
+                              },
+                              icon: const Icon(
+                                Icons.person_add,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                'Assign',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
+                          ),
 
-                          ],
-                        ),
+                        ],
                       ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -298,9 +295,11 @@ class _BookingManagementPageState
     }
   }
 
-  void showStatusDialog(BuildContext context, String bookingId, String currentStatus) {
+  void showStatusDialog(
+      BuildContext context, String bookingId, String currentStatus) {
 
-    String selectedStatus = (currentStatus == 'Assigned') ? 'Pending' : currentStatus;
+    String selectedStatus =
+    (currentStatus == 'Assigned') ? 'Pending' : currentStatus;
 
     showDialog(
       context: context,
@@ -317,7 +316,8 @@ class _BookingManagementPageState
             builder: (context, setState) {
               return Column(
                 mainAxisSize: MainAxisSize.min,
-                children: ['Pending', 'Completed', 'Cancelled'].map((status) {
+                children:
+                ['Pending', 'Completed', 'Cancelled'].map((status) {
                   final isSelected = selectedStatus == status;
                   return GestureDetector(
                     onTap: () {
@@ -328,18 +328,26 @@ class _BookingManagementPageState
                     child: Container(
                       width: double.infinity,
                       margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 16,
+                      ),
                       decoration: BoxDecoration(
-                        color: isSelected ? getStatusColor(status) : Colors.grey.shade100,
+                        color: isSelected
+                            ? getStatusColor(status)
+                            : Colors.grey.shade100,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? getStatusColor(status) : Colors.grey.shade300,
+                          color: isSelected
+                              ? getStatusColor(status)
+                              : Colors.grey.shade300,
                         ),
                       ),
                       child: Text(
                         status,
                         style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.black87,
+                          color:
+                          isSelected ? Colors.white : Colors.black87,
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                         ),
@@ -365,11 +373,14 @@ class _BookingManagementPageState
 
               onPressed: () async {
 
-                if (selectedStatus == 'Completed' && currentStatus != 'Assigned') {
+                if (selectedStatus == 'Completed' &&
+                    currentStatus != 'Assigned') {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Cannot complete. Please assign a cleaner first!'),
+                      content: Text(
+                        'Cannot complete. Please assign a cleaner first!',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -399,6 +410,7 @@ class _BookingManagementPageState
                 style: TextStyle(color: Colors.white),
               ),
             ),
+
           ],
         );
       },
@@ -452,7 +464,8 @@ class _BookingManagementPageState
 
                 onChanged: (value) {
 
-                  final cleaner = cleaners.firstWhere((e) => e.id == value);
+                  final cleaner =
+                  cleaners.firstWhere((e) => e.id == value);
                   final data = cleaner.data() as Map<String, dynamic>;
 
                   selectedCleanerId = cleaner.id;
@@ -505,6 +518,7 @@ class _BookingManagementPageState
                 style: TextStyle(color: Colors.white),
               ),
             ),
+
           ],
         );
       },

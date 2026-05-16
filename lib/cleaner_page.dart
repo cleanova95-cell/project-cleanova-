@@ -20,7 +20,6 @@ class _CleanerPageState extends State<CleanerPage> {
     _fetchCleaners();
   }
 
-  // ─── Task 2: Retrieve cleaner profile & completed job count ───────────────
   Future<void> _fetchCleaners() async {
     setState(() => isLoading = true);
 
@@ -34,7 +33,6 @@ class _CleanerPageState extends State<CleanerPage> {
     for (final doc in snapshot.docs) {
       final data = {'id': doc.id, ...doc.data()};
 
-      // ✅ FIXED: guna 'cleanerId' dan filter status 'Completed'
       final jobsSnapshot = await FirebaseFirestore.instance
           .collection('bookings')
           .where('cleanerId', isEqualTo: doc.id)
@@ -51,7 +49,6 @@ class _CleanerPageState extends State<CleanerPage> {
     });
   }
 
-  // ─── Task 5: Delete cleaner ───────────────────────────────────────────────
   Future<void> _deleteCleaner(String userId, String userName) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -114,7 +111,6 @@ class _CleanerPageState extends State<CleanerPage> {
     }
   }
 
-  // ─── Task 7: Update email via Cloud Function ──────────────────────────────
   Future<void> _updateEmail(String userId, String newEmail) async {
     try {
       final callable = FirebaseFunctions.instanceFor(region: 'us-central1')
@@ -298,7 +294,7 @@ class _CleanerPageState extends State<CleanerPage> {
     phoneController.dispose();
   }
 
-  // ─── Helper: Confirm row ──────────────────────────────────────────────────
+
   Widget _confirmRow(String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,7 +321,6 @@ class _CleanerPageState extends State<CleanerPage> {
     );
   }
 
-  // ─── Helper: Edit text field ──────────────────────────────────────────────
   Widget _editField(
       String label, TextEditingController controller, IconData icon) {
     return TextField(
@@ -351,14 +346,14 @@ class _CleanerPageState extends State<CleanerPage> {
     );
   }
 
-  // ─── Task 1 & 3: Cleaner management page + display cleaner list ───────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1FFF3),
       body: Column(
         children: [
-          // ── Header ────────────────────────────────────────────────────────
+
           Container(
             width: double.infinity,
             padding: EdgeInsets.fromLTRB(
@@ -402,7 +397,7 @@ class _CleanerPageState extends State<CleanerPage> {
 
           const SizedBox(height: 10),
 
-          // ── Body ──────────────────────────────────────────────────────────
+
           isLoading
               ? const Expanded(
               child: Center(child: CircularProgressIndicator()))
@@ -448,7 +443,7 @@ class _CleanerPageState extends State<CleanerPage> {
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-                          // Avatar
+
                           CircleAvatar(
                             radius: 28,
                             backgroundColor:
@@ -466,7 +461,7 @@ class _CleanerPageState extends State<CleanerPage> {
                           ),
                           const SizedBox(width: 14),
 
-                          // Info
+
                           Expanded(
                             child: Column(
                               crossAxisAlignment:
@@ -494,7 +489,7 @@ class _CleanerPageState extends State<CleanerPage> {
                                       color: Colors.grey),
                                 ),
                                 const SizedBox(height: 5),
-                                // ✅ Job count badge
+
                                 Row(
                                   children: [
                                     Icon(

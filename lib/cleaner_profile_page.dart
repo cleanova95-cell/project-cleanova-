@@ -16,11 +16,11 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
   final _nameController  = TextEditingController();
   final _phoneController = TextEditingController();
 
-  bool   _isLoading   = true;
-  bool   _isSaving    = false;
-  bool   _isEditMode  = false;
-  String _email       = '';
-  String _memberSince = '';
+  bool    _isLoading  = true;
+  bool    _isSaving   = false;
+  bool    _isEditMode = false;
+  String  _email       = '';
+  String  _memberSince = '';
   String? _photoBase64;
 
   @override
@@ -38,7 +38,6 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
 
   Future<void> _loadProfile() async {
     setState(() => _isLoading = true);
-
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
       final doc = await FirebaseFirestore.instance
@@ -75,8 +74,7 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
       return;
     }
 
-    if (phone.isNotEmpty &&
-        !RegExp(r'^\+?[0-9]{8,15}$').hasMatch(phone)) {
+    if (phone.isNotEmpty && !RegExp(r'^\+?[0-9]{8,15}$').hasMatch(phone)) {
       _showSnack('Enter a valid phone number', isError: true);
       return;
     }
@@ -85,7 +83,6 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
 
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
-
       final Map<String, dynamic> updates = {
         'full_name':  name,
         'phone':      phone,
@@ -119,7 +116,6 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
         maxHeight:    400,
         imageQuality: 70,
       );
-
       if (picked == null) return;
 
       final bytes  = await picked.readAsBytes();
@@ -153,8 +149,7 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor:
-        isError ? Colors.red : const Color(0xFF43A047),
+        backgroundColor: isError ? Colors.red : const Color(0xFF43A047),
       ),
     );
   }
@@ -170,82 +165,52 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF43A047)),
-        ),
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF43A047)),
       );
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF1FFF3),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
 
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        elevation: 0,
-        centerTitle: true,
-
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF43A047), Color(0xFF66BB6A)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (!_isEditMode)
+                TextButton.icon(
+                  onPressed: () => setState(() => _isEditMode = true),
+                  icon: const Icon(Icons.edit, color: Color(0xFF43A047)),
+                  label: const Text(
+                    'Edit',
+                    style: TextStyle(color: Color(0xFF43A047)),
+                  ),
+                )
+              else
+                TextButton(
+                  onPressed: () {
+                    setState(() => _isEditMode = false);
+                    _loadProfile();
+                  },
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+            ],
           ),
-        ),
 
-        title: const Text(
-          'My Profile',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+          _buildAvatarSection(),
+          const SizedBox(height: 24),
+          _buildInfoCard(),
+          const SizedBox(height: 20),
+          _buildAccountCard(),
+          const SizedBox(height: 20),
+          if (_isEditMode) _buildSaveButton(),
+          const SizedBox(height: 30),
 
-        actions: [
-          if (!_isEditMode)
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.white),
-              tooltip: 'Edit Profile',
-              onPressed: () => setState(() => _isEditMode = true),
-            )
-          else
-            TextButton(
-              onPressed: () {
-                setState(() => _isEditMode = false);
-                _loadProfile(); // discard unsaved changes
-              },
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.white, fontSize: 15),
-              ),
-            ),
         ],
-      ),
-
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-
-            _buildAvatarSection(),
-
-            const SizedBox(height: 24),
-
-            _buildInfoCard(),
-
-            const SizedBox(height: 20),
-
-            _buildAccountCard(),
-
-            const SizedBox(height: 20),
-
-            if (_isEditMode) _buildSaveButton(),
-
-            const SizedBox(height: 30),
-          ],
-        ),
       ),
     );
   }
@@ -287,7 +252,6 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
                     : _defaultAvatar(),
               ),
             ),
-
             if (_isEditMode)
               GestureDetector(
                 onTap: _pickPhoto,
@@ -310,13 +274,8 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
         const SizedBox(height: 14),
 
         Text(
-          _nameController.text.isNotEmpty
-              ? _nameController.text
-              : 'Cleaner',
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
+          _nameController.text.isNotEmpty ? _nameController.text : 'Cleaner',
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
 
         const SizedBox(height: 4),
@@ -329,10 +288,7 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
         if (_memberSince.isNotEmpty) ...[
           const SizedBox(height: 6),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 5,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
             decoration: BoxDecoration(
               color: const Color(0xFFE8F5E9),
               borderRadius: BorderRadius.circular(20),
@@ -368,11 +324,7 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
 
   Widget _defaultAvatar() {
     return const Center(
-      child: Icon(
-        Icons.cleaning_services,
-        color: Colors.white,
-        size: 55,
-      ),
+      child: Icon(Icons.cleaning_services, color: Colors.white, size: 55),
     );
   }
 
@@ -436,7 +388,6 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
           _cardTitle('Account Settings', Icons.settings_outlined),
           const SizedBox(height: 16),
 
-          // Change password
           GestureDetector(
             onTap: () => showDialog(
               context: context,
@@ -471,26 +422,18 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
                       SizedBox(height: 2),
                       Text(
                         'A reset link will be sent to your email',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.grey,
-                  size: 14,
-                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 14),
               ],
             ),
           ),
 
           const Divider(height: 24),
 
-          // Account type
           Row(
             children: [
               Container(
@@ -535,7 +478,6 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
       ),
     );
   }
-
 
   Widget _buildSaveButton() {
     return SizedBox(
@@ -590,17 +532,12 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
 
   Widget _passwordResetDialog() {
     return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: const Row(
         children: [
           Icon(Icons.lock_outline, color: Color(0xFF43A047)),
           SizedBox(width: 10),
-          Text(
-            'Change Password',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text('Change Password', style: TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
       content: Text(
@@ -610,10 +547,7 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text(
-            'Cancel',
-            style: TextStyle(color: Colors.grey),
-          ),
+          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
         ),
         ElevatedButton(
           onPressed: () {
@@ -622,19 +556,13 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF43A047),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
-          child: const Text(
-            'Send Link',
-            style: TextStyle(color: Colors.white),
-          ),
+          child: const Text('Send Link', style: TextStyle(color: Colors.white)),
         ),
       ],
     );
   }
-
 
   Widget _card({required Widget child}) {
     return Container(
@@ -693,17 +621,11 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                label,
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
+              Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
               const SizedBox(height: 2),
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -733,10 +655,7 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: Color(0xFF43A047),
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: Color(0xFF43A047), width: 1.5),
         ),
       ),
     );

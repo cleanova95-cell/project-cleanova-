@@ -16,10 +16,8 @@ class _BookingPageState extends State<BookingPage> {
 
   DateTime? selectedDate;
 
-  final TextEditingController addressController =
-  TextEditingController();
+  final TextEditingController addressController = TextEditingController();
 
-  // CHANGED: fetch dari Firestore, bukan hardcoded
   Map<String, dynamic> prices = {};
   bool isLoadingPrices = true;
 
@@ -52,7 +50,6 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   Future<void> pickDate() async {
-
     DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -68,17 +65,13 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   Future<void> saveBooking() async {
-
-    if (selectedDate == null ||
-        addressController.text.isEmpty) {
-
+    if (selectedDate == null || addressController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please complete all booking details'),
           backgroundColor: Colors.red,
         ),
       );
-
       return;
     }
 
@@ -89,9 +82,7 @@ class _BookingPageState extends State<BookingPage> {
 
     User? user = FirebaseAuth.instance.currentUser;
 
-    await FirebaseFirestore.instance
-        .collection('bookings')
-        .add({
+    await FirebaseFirestore.instance.collection('bookings').add({
       'userId': user!.uid,
       'email': user.email,
       'service': selectedService,
@@ -129,62 +120,42 @@ class _BookingPageState extends State<BookingPage> {
     }
 
     return Scaffold(
-
       backgroundColor: const Color(0xFFF1FFF3),
-
       appBar: AppBar(
-
         automaticallyImplyLeading: false,
         elevation: 0,
-
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Color(0xFF43A047),
-                Color(0xFF66BB6A),
-              ],
+              colors: [Color(0xFF43A047), Color(0xFF66BB6A)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
         ),
-
         title: const Text(
           'Book Cleaning Service',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
-
       body: isLoadingPrices
-          ? const Center(
-        child: CircularProgressIndicator(color: Colors.green),
-      )
+          ? const Center(child: CircularProgressIndicator(color: Colors.green))
           : SingleChildScrollView(
-
         padding: const EdgeInsets.all(20),
-
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-
           children: [
 
             const Text(
               'Select Service',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 15),
 
             serviceCard(
               'House Cleaning',
-              Icons.home,
+              Icons.home_outlined,
               'House Cleaning',
               'A standard cleaning to keep your home fresh and tidy. Includes:\n\n• Sweeping & mopping all floors\n• Wiping down surfaces & tables\n• Bathroom cleaning (sink, toilet, shower)\n• Kitchen wipe-down (counters, stovetop, sink)\n• Emptying rubbish bins\n• Vacuuming carpets & rugs\n\nPerfect for regular upkeep of your home.',
             ),
@@ -193,7 +164,7 @@ class _BookingPageState extends State<BookingPage> {
 
             serviceCard(
               'Deep Cleaning',
-              Icons.cleaning_services,
+              Icons.auto_fix_high_outlined,
               'Deep Cleaning',
               'A thorough, top-to-bottom clean — everything in House Cleaning, plus:\n\n• Inside oven, fridge & microwave\n• Scrubbing tile grout & bathroom corners\n• Cleaning window tracks & sills\n• Inside kitchen cabinets & drawers\n• Removing cobwebs from ceilings & corners\n• Disinfecting high-touch surfaces (switches, door handles)\n• Behind and under furniture\n\nIdeal for move-in/move-out or a seasonal deep clean.',
             ),
@@ -202,7 +173,7 @@ class _BookingPageState extends State<BookingPage> {
 
             serviceCard(
               'Office Cleaning',
-              Icons.business,
+              Icons.business_center_outlined,
               'Office Cleaning',
               'Professional cleaning for your workplace. Includes:\n\n• Wiping desks, workstations & monitors\n• Cleaning keyboards, phones & office equipment\n• Vacuuming & mopping floors\n• Restroom cleaning & sanitising\n• Pantry & kitchen area cleaning\n• Glass partition & window cleaning\n• Disinfecting high-touch areas (door handles, buttons, railings)\n• Emptying all bins\n\nKeeps your workspace clean, hygienic and professional.',
             ),
@@ -213,10 +184,7 @@ class _BookingPageState extends State<BookingPage> {
               children: [
                 const Text(
                   'Select Size',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
@@ -357,10 +325,7 @@ class _BookingPageState extends State<BookingPage> {
 
             const Text(
               'Booking Date',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 15),
@@ -374,18 +339,12 @@ class _BookingPageState extends State<BookingPage> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.shade200,
-                      blurRadius: 8,
-                    ),
+                    BoxShadow(color: Colors.grey.shade200, blurRadius: 8),
                   ],
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.calendar_month,
-                      color: Colors.green,
-                    ),
+                    const Icon(Icons.calendar_month, color: Colors.green),
                     const SizedBox(width: 15),
                     Text(
                       selectedDate == null
@@ -402,10 +361,7 @@ class _BookingPageState extends State<BookingPage> {
 
             const Text(
               'Address',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 15),
@@ -430,10 +386,7 @@ class _BookingPageState extends State<BookingPage> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF43A047),
-                    Color(0xFF66BB6A),
-                  ],
+                  colors: [Color(0xFF43A047), Color(0xFF66BB6A)],
                 ),
                 borderRadius: BorderRadius.circular(25),
               ),
@@ -445,10 +398,7 @@ class _BookingPageState extends State<BookingPage> {
                     children: [
                       Text(
                         'Total Price',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 16,
-                        ),
+                        style: TextStyle(color: Colors.white70, fontSize: 16),
                       ),
                       SizedBox(height: 8),
                     ],
@@ -505,7 +455,6 @@ class _BookingPageState extends State<BookingPage> {
       String infoTitle,
       String infoText,
       ) {
-
     bool isSelected = selectedService == title;
 
     return GestureDetector(
@@ -524,10 +473,7 @@ class _BookingPageState extends State<BookingPage> {
             width: 2,
           ),
           boxShadow: [
-            BoxShadow(
-              color: Colors.grey.shade200,
-              blurRadius: 8,
-            ),
+            BoxShadow(color: Colors.grey.shade200, blurRadius: 8),
           ],
         ),
         child: Row(
@@ -537,10 +483,7 @@ class _BookingPageState extends State<BookingPage> {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
             GestureDetector(
@@ -611,7 +554,6 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   Widget sizeButton(String size) {
-
     bool isSelected = selectedSize == size;
 
     return GestureDetector(
@@ -626,19 +568,13 @@ class _BookingPageState extends State<BookingPage> {
         decoration: BoxDecoration(
           gradient: isSelected
               ? const LinearGradient(
-            colors: [
-              Color(0xFF43A047),
-              Color(0xFF66BB6A),
-            ],
+            colors: [Color(0xFF43A047), Color(0xFF66BB6A)],
           )
               : null,
           color: isSelected ? null : Colors.white,
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
-            BoxShadow(
-              color: Colors.grey.shade200,
-              blurRadius: 8,
-            ),
+            BoxShadow(color: Colors.grey.shade200, blurRadius: 8),
           ],
         ),
         child: Center(
@@ -704,10 +640,7 @@ class _SizeGuideRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   desc,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.black87,
-                  ),
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
                 ),
               ],
             ),

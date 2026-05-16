@@ -33,8 +33,6 @@ class _PricingManagementPageState
   ];
 
   Map<String, Map<String, TextEditingController>> controllers = {};
-
-  // ✅ TAMBAH: Store original prices
   Map<String, Map<String, int>> originalPrices = {};
 
   bool isLoading = true;
@@ -54,7 +52,6 @@ class _PricingManagementPageState
         'Medium': TextEditingController(),
         'Large': TextEditingController(),
       };
-      // ✅ TAMBAH: Init original prices
       originalPrices[id] = {'Small': 0, 'Medium': 0, 'Large': 0};
     }
   }
@@ -77,7 +74,6 @@ class _PricingManagementPageState
         controllers[id]!['Medium']!.text = medium.toString();
         controllers[id]!['Large']!.text = large.toString();
 
-        // ✅ TAMBAH: Save original prices
         originalPrices[id] = {
           'Small': small,
           'Medium': medium,
@@ -91,17 +87,19 @@ class _PricingManagementPageState
     });
   }
 
-  // ✅ TAMBAH: Show confirmation dialog before saving
-  Future<void> _confirmAndSave(String serviceId, String serviceTitle) async {
-    final newSmall = int.tryParse(controllers[serviceId]!['Small']!.text) ?? 0;
-    final newMedium = int.tryParse(controllers[serviceId]!['Medium']!.text) ?? 0;
-    final newLarge = int.tryParse(controllers[serviceId]!['Large']!.text) ?? 0;
+  Future<void> _confirmAndSave(
+      String serviceId, String serviceTitle) async {
+    final newSmall =
+        int.tryParse(controllers[serviceId]!['Small']!.text) ?? 0;
+    final newMedium =
+        int.tryParse(controllers[serviceId]!['Medium']!.text) ?? 0;
+    final newLarge =
+        int.tryParse(controllers[serviceId]!['Large']!.text) ?? 0;
 
     final oldSmall = originalPrices[serviceId]!['Small']!;
     final oldMedium = originalPrices[serviceId]!['Medium']!;
     final oldLarge = originalPrices[serviceId]!['Large']!;
 
-    // Build list of changes
     final List<Map<String, dynamic>> changes = [];
     if (newSmall != oldSmall) {
       changes.add({'label': 'Small', 'old': oldSmall, 'new': newSmall});
@@ -113,7 +111,6 @@ class _PricingManagementPageState
       changes.add({'label': 'Large', 'old': oldLarge, 'new': newLarge});
     }
 
-    // No changes made
     if (changes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No changes detected.')),
@@ -124,14 +121,19 @@ class _PricingManagementPageState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         title: Row(
           children: [
             Icon(Icons.edit_note, color: primaryGreen),
             const SizedBox(width: 8),
             const Text(
               'Confirm Changes',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
             ),
           ],
         ),
@@ -149,7 +151,10 @@ class _PricingManagementPageState
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE8F5E9),
                       borderRadius: BorderRadius.circular(8),
@@ -174,7 +179,11 @@ class _PricingManagementPageState
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 6),
-                    child: Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
+                    child: Icon(
+                      Icons.arrow_forward,
+                      size: 14,
+                      color: Colors.grey,
+                    ),
                   ),
                   Text(
                     'RM ${change['new']}',
@@ -192,7 +201,10 @@ class _PricingManagementPageState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -213,7 +225,6 @@ class _PricingManagementPageState
 
     if (confirmed == true) {
       await _savePrices(serviceId);
-      // ✅ TAMBAH: Update original prices after save
       originalPrices[serviceId] = {
         'Small': newSmall,
         'Medium': newMedium,
@@ -223,9 +234,12 @@ class _PricingManagementPageState
   }
 
   Future<void> _savePrices(String serviceId) async {
-    final small = int.tryParse(controllers[serviceId]!['Small']!.text) ?? 0;
-    final medium = int.tryParse(controllers[serviceId]!['Medium']!.text) ?? 0;
-    final large = int.tryParse(controllers[serviceId]!['Large']!.text) ?? 0;
+    final small =
+        int.tryParse(controllers[serviceId]!['Small']!.text) ?? 0;
+    final medium =
+        int.tryParse(controllers[serviceId]!['Medium']!.text) ?? 0;
+    final large =
+        int.tryParse(controllers[serviceId]!['Large']!.text) ?? 0;
 
     await FirebaseFirestore.instance
         .collection('service_prices')
@@ -260,119 +274,135 @@ class _PricingManagementPageState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1FFF3),
-      body: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 20, 20, 20),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF43A047), Color(0xFF66BB6A)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+
+      appBar: AppBar(
+        elevation: 0,
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF43A047),
+                Color(0xFF66BB6A),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Pricing Management',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Update service pricing',
-                  style: TextStyle(fontSize: 16, color: Colors.white70),
+          ),
+        ),
+
+        title: const Text(
+          'Pricing Management',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 15,
+          vertical: 10,
+        ),
+        itemCount: services.length,
+        itemBuilder: (context, index) {
+          final service = services[index];
+          final id = service['id'] as String;
+          final icon = service['icon'] as IconData;
+          final title = service['title'] as String;
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.shade200,
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 15),
-          isLoading
-              ? const Expanded(child: Center(child: CircularProgressIndicator()))
-              : Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-              itemCount: services.length,
-              itemBuilder: (context, index) {
-                final service = services[index];
-                final id = service['id'] as String;
-                final icon = service['icon'] as IconData;
-                final title = service['title'] as String;
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 18),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.shade200,
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          icon,
+                          color: primaryGreen,
+                          size: 26,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE8F5E9),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(icon, color: primaryGreen, size: 26),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              title,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        _priceField('Small', controllers[id]!['Small']!),
-                        const SizedBox(height: 12),
-                        _priceField('Medium', controllers[id]!['Medium']!),
-                        const SizedBox(height: 12),
-                        _priceField('Large', controllers[id]!['Large']!),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryGreen,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                            ),
 
-                            onPressed: () => _confirmAndSave(id, title),
-                            icon: const Icon(Icons.save, color: Colors.white),
-                            label: const Text(
-                              'Save Pricing',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ),
+                  const SizedBox(height: 20),
+
+                  _priceField('Small', controllers[id]!['Small']!),
+                  const SizedBox(height: 12),
+                  _priceField('Medium', controllers[id]!['Medium']!),
+                  const SizedBox(height: 12),
+                  _priceField('Large', controllers[id]!['Large']!),
+
+                  const SizedBox(height: 20),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryGreen,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
                         ),
-                      ],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                      onPressed: () => _confirmAndSave(id, title),
+                      icon: const Icon(
+                        Icons.save,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Save Pricing',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
                     ),
                   ),
-                );
-              },
+
+                ],
+              ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -382,7 +412,13 @@ class _PricingManagementPageState
       children: [
         SizedBox(
           width: 80,
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -391,7 +427,10 @@ class _PricingManagementPageState
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               prefixText: 'RM ',
-              prefixStyle: TextStyle(color: primaryGreen, fontWeight: FontWeight.bold),
+              prefixStyle: TextStyle(
+                color: primaryGreen,
+                fontWeight: FontWeight.bold,
+              ),
               filled: true,
               fillColor: const Color(0xFFF1FFF3),
               border: OutlineInputBorder(
@@ -406,7 +445,10 @@ class _PricingManagementPageState
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: primaryGreen, width: 2),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
             ),
           ),
         ),

@@ -412,8 +412,8 @@ class _LoginPageState extends State<LoginPage> {
 
                               icon: Icon(
                                 isHidden
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                               ),
 
                               onPressed: () {

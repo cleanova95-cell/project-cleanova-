@@ -20,98 +20,51 @@ class _CleanerDashboardState
   int currentIndex = 0;
 
   final List pages = [
-
     const CleanerHomePage(),
     const JobsPage(),
     const CleanerHistoryPage(),
     const CleanerProfilePage(),
-
   ];
 
   Future<void> logoutUser() async {
 
-    final bool? confirmed =
-    await showDialog<bool>(
-
+    final bool? confirmed = await showDialog<bool>(
       context: context,
-
       builder: (context) {
-
         return AlertDialog(
-
           shape: RoundedRectangleBorder(
-            borderRadius:
-            BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20),
           ),
-
-          title: const Text(
-            'Log Out',
-          ),
-
-          content: const Text(
-            'Are you sure you want to log out?',
-          ),
-
+          title: const Text('Log Out'),
+          content: const Text('Are you sure you want to log out?'),
           actions: [
-
             TextButton(
-
-              onPressed: () {
-                Navigator.pop(
-                  context,
-                  false,
-                );
-              },
-
-              child: const Text(
-                'Cancel',
-              ),
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
             ),
-
             ElevatedButton(
-
-              style:
-              ElevatedButton.styleFrom(
-                backgroundColor:
-                Colors.green,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
               ),
-
-              onPressed: () {
-                Navigator.pop(
-                  context,
-                  true,
-                );
-              },
-
+              onPressed: () => Navigator.pop(context, true),
               child: const Text(
-
                 'Log Out',
-
-                style: TextStyle(
-                  color: Colors.white,
-                ),
+                style: TextStyle(color: Colors.white),
               ),
             ),
-
           ],
         );
       },
     );
 
     if (confirmed == true) {
-
-      await FirebaseAuth.instance
-          .signOut();
+      await FirebaseAuth.instance.signOut();
 
       Navigator.pushAndRemoveUntil(
-
         context,
-
         MaterialPageRoute(
-          builder: (context) =>
-          const LoginPage(),
+          builder: (context) => const LoginPage(),
         ),
-
             (route) => false,
       );
     }
@@ -121,227 +74,144 @@ class _CleanerDashboardState
   Widget build(BuildContext context) {
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF1FFF3),
 
-      backgroundColor:
-      const Color(0xFFF1FFF3),
-
-      appBar: currentIndex == 0
-
+      appBar: currentIndex == 0 || currentIndex == 1 || currentIndex == 3
           ? AppBar(
-
         elevation: 0,
         centerTitle: true,
-
+        toolbarHeight: 60,
         actions: [
-
-          IconButton(
-
-            icon: const Icon(
-              Icons.logout,
-              color: Colors.white,
-            ),
-
-            onPressed: logoutUser,
-          ),
-
+          if (currentIndex == 0)
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              onPressed: logoutUser,
+            )
+          else
+            const SizedBox(width: 48),
         ],
-
         flexibleSpace: Container(
-
           decoration: const BoxDecoration(
-
             gradient: LinearGradient(
-
               colors: [
                 Color(0xFF43A047),
                 Color(0xFF66BB6A),
               ],
-
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
         ),
-
-        title: const Text(
-
-          'Cleaner Dashboard',
-
-          style: TextStyle(
+        title: Text(
+          currentIndex == 0
+              ? 'Cleaner Dashboard'
+              : currentIndex == 1
+              ? 'My Jobs'
+              : 'My Profile',
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
       )
-
           : null,
 
       body: SafeArea(
+        top: currentIndex == 0 || currentIndex == 1 || currentIndex == 3,
         child: pages[currentIndex],
       ),
 
-      bottomNavigationBar:
-      BottomNavigationBar(
-
+      bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
-
-        selectedItemColor:
-        Colors.green,
-
-        unselectedItemColor:
-        Colors.grey,
-
-        backgroundColor:
-        Colors.white,
-
-        type:
-        BottomNavigationBarType.fixed,
-
+        selectedItemColor: Colors.green,
+        unselectedItemColor: Colors.grey,
+        backgroundColor: Colors.white,
+        type: BottomNavigationBarType.fixed,
         onTap: (index) {
-
           setState(() {
             currentIndex = index;
           });
         },
-
         items: const [
-
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
-
           BottomNavigationBarItem(
             icon: Icon(Icons.work),
             label: 'Jobs',
           ),
-
           BottomNavigationBarItem(
             icon: Icon(Icons.history),
             label: 'History',
           ),
-
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profile',
           ),
-
         ],
       ),
     );
   }
 }
 
-class CleanerHomePage
-    extends StatelessWidget {
+class CleanerHomePage extends StatelessWidget {
 
   const CleanerHomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
 
-    final user =
-        FirebaseAuth.instance.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
 
     return StreamBuilder<DocumentSnapshot>(
-
-      stream:
-      FirebaseFirestore.instance
+      stream: FirebaseFirestore.instance
           .collection('users')
           .doc(user!.uid)
           .snapshots(),
 
       builder: (context, userSnapshot) {
 
-        String cleanerName =
-            'Cleaner';
+        String cleanerName = 'Cleaner';
 
-        if (userSnapshot.hasData &&
-            userSnapshot.data!.exists) {
-
+        if (userSnapshot.hasData && userSnapshot.data!.exists) {
           final userData =
-          userSnapshot.data!.data()
-          as Map<String, dynamic>;
-
-          cleanerName =
-              userData['full_name'] ??
-                  'Cleaner';
+          userSnapshot.data!.data() as Map<String, dynamic>;
+          cleanerName = userData['full_name'] ?? 'Cleaner';
         }
 
         return StreamBuilder<QuerySnapshot>(
-
-          stream:
-          FirebaseFirestore.instance
+          stream: FirebaseFirestore.instance
               .collection('bookings')
-              .where(
-            'cleanerId',
-            isEqualTo: user.uid,
-          )
+              .where('cleanerId', isEqualTo: user.uid)
               .snapshots(),
 
-          builder:
-              (context, bookingSnapshot) {
+          builder: (context, bookingSnapshot) {
 
-            int assignedCount = 0;
+            int assignedCount  = 0;
             int completedCount = 0;
-            int pendingCount = 0;
+            int pendingCount   = 0;
             int thisMonthCount = 0;
 
             List recentJobs = [];
 
             if (bookingSnapshot.hasData) {
-
-              final jobs =
-                  bookingSnapshot
-                      .data!.docs;
-
+              final jobs = bookingSnapshot.data!.docs;
               recentJobs = jobs;
 
               for (var job in jobs) {
+                final data = job.data() as Map<String, dynamic>;
+                final status = data['status'] ?? '';
 
-                final data =
-                job.data()
-                as Map<String,
-                    dynamic>;
+                if (status == 'Assigned')  assignedCount++;
+                if (status == 'Completed') completedCount++;
+                if (status == 'Pending')   pendingCount++;
 
-                final status =
-                    data['status'] ??
-                        '';
-
-                if (status ==
-                    'Assigned') {
-
-                  assignedCount++;
-                }
-
-                if (status ==
-                    'Completed') {
-
-                  completedCount++;
-                }
-
-                if (status ==
-                    'Pending') {
-
-                  pendingCount++;
-                }
-
-                Timestamp? timestamp =
-                data['created_at'];
-
+                Timestamp? timestamp = data['created_at'];
                 if (timestamp != null) {
-
-                  DateTime date =
-                  timestamp.toDate();
-
-                  DateTime now =
-                  DateTime.now();
-
-                  if (date.month ==
-                      now.month &&
-                      date.year ==
-                          now.year) {
-
+                  DateTime date = timestamp.toDate();
+                  DateTime now  = DateTime.now();
+                  if (date.month == now.month && date.year == now.year) {
                     thisMonthCount++;
                   }
                 }
@@ -349,364 +219,157 @@ class CleanerHomePage
             }
 
             return SingleChildScrollView(
-
-              padding:
-              const EdgeInsets.all(
-                20,
-              ),
-
+              padding: const EdgeInsets.all(20),
               child: Column(
-
-                crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
-
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
                   const Text(
-
                     'Welcome Back 👋',
-
-                    style:
-                    TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
-                      fontWeight:
-                      FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 8,
-                  ),
+                  const SizedBox(height: 8),
 
                   Text(
-
                     cleanerName,
-
-                    style:
-                    const TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
-                      color:
-                      Colors.grey,
+                      color: Colors.grey,
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 25,
-                  ),
+                  const SizedBox(height: 25),
 
                   Container(
-
-                    padding:
-                    const EdgeInsets
-                        .all(25),
-
-                    decoration:
-                    BoxDecoration(
-
-                      gradient:
-                      const LinearGradient(
-
+                    padding: const EdgeInsets.all(25),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
                         colors: [
-
-                          Color(
-                            0xFF43A047,
-                          ),
-
-                          Color(
-                            0xFF66BB6A,
-                          ),
-
+                          Color(0xFF43A047),
+                          Color(0xFF66BB6A),
                         ],
-
-                        begin:
-                        Alignment
-                            .topLeft,
-
-                        end:
-                        Alignment
-                            .bottomRight,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-
-                      borderRadius:
-                      BorderRadius
-                          .circular(
-                        25,
-                      ),
-
+                      borderRadius: BorderRadius.circular(25),
                       boxShadow: [
-
                         BoxShadow(
-                          color: Colors
-                              .green
-                              .withValues(
-                            alpha: 0.3,
-                          ),
-
-                          blurRadius:
-                          10,
-
-                          offset:
-                          const Offset(
-                            0,
-                            5,
-                          ),
+                          color: Colors.green.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
                         ),
-
                       ],
                     ),
-
                     child: const Row(
-
-                      mainAxisAlignment:
-                      MainAxisAlignment
-                          .spaceBetween,
-
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-
                         Expanded(
-
                           child: Column(
-
-                            crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
-
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-
                               Text(
-
                                 'Today Jobs',
-
-                                style:
-                                TextStyle(
-                                  color: Colors
-                                      .white,
-
-                                  fontSize:
-                                  24,
-
-                                  fontWeight:
-                                  FontWeight
-                                      .bold,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-
-                              SizedBox(
-                                height:
-                                10,
-                              ),
-
+                              SizedBox(height: 10),
                               Text(
-
                                 'Check your assigned jobs and complete tasks on time.',
-
-                                style:
-                                TextStyle(
-                                  color: Colors
-                                      .white,
-
-                                  fontSize:
-                                  15,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
                                 ),
                               ),
-
                             ],
                           ),
                         ),
-
-                        SizedBox(
-                          width: 10,
-                        ),
-
+                        SizedBox(width: 10),
                         Icon(
-
-                          Icons
-                              .cleaning_services,
-
-                          color:
-                          Colors.white,
-
+                          Icons.cleaning_services,
+                          color: Colors.white,
                           size: 65,
                         ),
-
                       ],
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 30,
-                  ),
+                  const SizedBox(height: 30),
 
                   const Text(
-
                     'Quick Overview',
-
                     style: TextStyle(
                       fontSize: 22,
-                      fontWeight:
-                      FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 20,
-                  ),
+                  const SizedBox(height: 20),
 
                   Row(
-
-                    mainAxisAlignment:
-                    MainAxisAlignment
-                        .spaceBetween,
-
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-
-                      statCard(
-                        context,
-                        'Assigned',
-                        assignedCount
-                            .toString(),
-                        Icons.assignment,
-                      ),
-
-                      statCard(
-                        context,
-                        'Completed',
-                        completedCount
-                            .toString(),
-                        Icons.check_circle,
-                      ),
-
+                      statCard(context, 'Assigned',  assignedCount.toString(),  Icons.assignment),
+                      statCard(context, 'Completed', completedCount.toString(), Icons.check_circle),
                     ],
                   ),
 
-                  const SizedBox(
-                    height: 15,
-                  ),
+                  const SizedBox(height: 15),
 
                   Row(
-
-                    mainAxisAlignment:
-                    MainAxisAlignment
-                        .spaceBetween,
-
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-
-                      statCard(
-                        context,
-                        'Pending',
-                        pendingCount
-                            .toString(),
-                        Icons.pending_actions,
-                      ),
-
-                      statCard(
-                        context,
-                        'This Month',
-                        thisMonthCount
-                            .toString(),
-                        Icons.calendar_month,
-                      ),
-
+                      statCard(context, 'Pending',    pendingCount.toString(),    Icons.pending_actions),
+                      statCard(context, 'This Month', thisMonthCount.toString(),  Icons.calendar_month),
                     ],
                   ),
 
-                  const SizedBox(
-                    height: 30,
-                  ),
+                  const SizedBox(height: 30),
 
                   const Text(
-
                     'Recent Assigned Jobs',
-
                     style: TextStyle(
                       fontSize: 22,
-                      fontWeight:
-                      FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 15,
-                  ),
+                  const SizedBox(height: 15),
 
                   if (recentJobs.isEmpty)
-
                     Container(
-
-                      width:
-                      double.infinity,
-
-                      padding:
-                      const EdgeInsets
-                          .all(20),
-
-                      decoration:
-                      BoxDecoration(
-
-                        color:
-                        Colors.white,
-
-                        borderRadius:
-                        BorderRadius
-                            .circular(
-                          20,
-                        ),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
                       ),
-
-                      child:
-                      const Center(
-
+                      child: const Center(
                         child: Text(
-
                           'No assigned jobs yet',
-
-                          style:
-                          TextStyle(
-                            fontSize:
-                            16,
-                            fontWeight:
-                            FontWeight
-                                .w500,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
                     )
-
                   else
-
                     Column(
-
-                      children:
-                      recentJobs
-                          .take(3)
-                          .map((job) {
-
-                        final data =
-                        job.data()
-                        as Map<String,
-                            dynamic>;
-
+                      children: recentJobs.take(3).map((job) {
+                        final data = job.data() as Map<String, dynamic>;
                         return Padding(
-
-                          padding:
-                          const EdgeInsets
-                              .only(
-                            bottom:
-                            15,
-                          ),
-
-                          child:
-                          jobCard(
-
-                            data['service'] ??
-                                'No Service',
-
-                            data['address'] ??
-                                'No Address',
-
-                            data['status'] ??
-                                'Pending',
+                          padding: const EdgeInsets.only(bottom: 15),
+                          child: jobCard(
+                            data['service'] ?? 'No Service',
+                            data['address'] ?? 'No Address',
+                            data['status']  ?? 'Pending',
                           ),
                         );
                       }).toList(),
@@ -727,241 +390,115 @@ class CleanerHomePage
       String value,
       IconData icon,
       ) {
-
     return Container(
-
-      width:
-      MediaQuery.of(context)
-          .size
-          .width *
-          0.42,
-
-      padding:
-      const EdgeInsets.all(18),
-
+      width: MediaQuery.of(context).size.width * 0.42,
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-
         color: Colors.white,
-
-        borderRadius:
-        BorderRadius.circular(20),
-
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
-
           BoxShadow(
-            color:
-            Colors.grey.shade200,
-
+            color: Colors.grey.shade200,
             blurRadius: 8,
           ),
-
         ],
       ),
-
       child: Column(
-
         children: [
-
-          Icon(
-
-            icon,
-
-            color: Colors.green,
-            size: 35,
-          ),
-
-          const SizedBox(
-            height: 12,
-          ),
-
+          Icon(icon, color: Colors.green, size: 35),
+          const SizedBox(height: 12),
           Text(
-
             value,
-
             style: const TextStyle(
               fontSize: 22,
-              fontWeight:
-              FontWeight.bold,
+              fontWeight: FontWeight.bold,
             ),
           ),
-
-          const SizedBox(
-            height: 5,
-          ),
-
+          const SizedBox(height: 5),
           Text(
-
             title,
-
-            style: const TextStyle(
-              color: Colors.grey,
-            ),
+            style: const TextStyle(color: Colors.grey),
           ),
-
         ],
       ),
     );
   }
 
-  Widget jobCard(
-      String service,
-      String location,
-      String status,
-      ) {
-
+  Widget jobCard(String service, String location, String status) {
     return Container(
-
-      padding:
-      const EdgeInsets.all(18),
-
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-
         color: Colors.white,
-
-        borderRadius:
-        BorderRadius.circular(20),
-
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
-
           BoxShadow(
-            color:
-            Colors.grey.shade200,
-
+            color: Colors.grey.shade200,
             blurRadius: 8,
           ),
-
         ],
       ),
-
       child: Column(
-
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
-
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           Row(
-
-            mainAxisAlignment:
-            MainAxisAlignment
-                .spaceBetween,
-
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-
               Expanded(
-
                 child: Text(
-
                   service,
-
-                  style:
-                  const TextStyle(
+                  style: const TextStyle(
                     fontSize: 18,
-                    fontWeight:
-                    FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-
               Container(
-
-                padding:
-                const EdgeInsets
-                    .symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 6,
                 ),
-
-                decoration:
-                BoxDecoration(
-
-                  color:
-                  status ==
-                      'Completed'
-                      ? Colors.green
-                      .shade100
-                      : Colors.blue
-                      .shade100,
-
-                  borderRadius:
-                  BorderRadius
-                      .circular(
-                    20,
-                  ),
+                decoration: BoxDecoration(
+                  color: status == 'Completed'
+                      ? Colors.green.shade100
+                      : Colors.blue.shade100,
+                  borderRadius: BorderRadius.circular(20),
                 ),
-
                 child: Text(
-
                   status,
-
                   style: TextStyle(
-
-                    color:
-                    status ==
-                        'Completed'
-                        ? Colors.green
-                        : Colors.blue,
-
-                    fontWeight:
-                    FontWeight.bold,
+                    color: status == 'Completed' ? Colors.green : Colors.blue,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-
             ],
           ),
-
-          const SizedBox(
-            height: 15,
-          ),
-
+          const SizedBox(height: 15),
           Row(
-
             children: [
-
-              const Icon(
-                Icons.location_on,
-                size: 18,
-                color: Colors.grey,
-              ),
-
-              const SizedBox(
-                width: 8,
-              ),
-
-              Expanded(
-                child:
-                Text(location),
-              ),
-
+              const Icon(Icons.location_on, size: 18, color: Colors.grey),
+              const SizedBox(width: 8),
+              Expanded(child: Text(location)),
             ],
           ),
-
         ],
       ),
     );
   }
 }
 
-class CleanerHistoryPage
-    extends StatelessWidget {
+class CleanerHistoryPage extends StatelessWidget {
 
-  const CleanerHistoryPage(
-      {super.key});
+  const CleanerHistoryPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-
     return const Center(
-
       child: Text(
-
         'Completed Jobs History',
-
         style: TextStyle(
           fontSize: 24,
-          fontWeight:
-          FontWeight.bold,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

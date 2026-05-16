@@ -25,3 +25,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/image/cleaner_main.png
+    - assets/image/deep1_icon.png
+    - assets/image/house_icon.png
+    - assets/image/office_icon.png
