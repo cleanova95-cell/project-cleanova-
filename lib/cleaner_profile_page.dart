@@ -165,52 +165,76 @@ class _CleanerProfilePageState extends State<CleanerProfilePage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF43A047)),
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF43A047)),
+        ),
       );
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
+    return Scaffold(
+      backgroundColor: const Color(0xFFF1FFF3),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              if (!_isEditMode)
-                TextButton.icon(
-                  onPressed: () => setState(() => _isEditMode = true),
-                  icon: const Icon(Icons.edit, color: Color(0xFF43A047)),
-                  label: const Text(
-                    'Edit',
-                    style: TextStyle(color: Color(0xFF43A047)),
-                  ),
-                )
-              else
-                TextButton(
-                  onPressed: () {
-                    setState(() => _isEditMode = false);
-                    _loadProfile();
-                  },
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-            ],
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        elevation: 0,
+        centerTitle: true,
+
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF43A047), Color(0xFF66BB6A)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
+        ),
 
-          _buildAvatarSection(),
-          const SizedBox(height: 24),
-          _buildInfoCard(),
-          const SizedBox(height: 20),
-          _buildAccountCard(),
-          const SizedBox(height: 20),
-          if (_isEditMode) _buildSaveButton(),
-          const SizedBox(height: 30),
+        title: const Text(
+          'My Profile',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
 
+        actions: [
+          if (!_isEditMode)
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.white),
+              tooltip: 'Edit Profile',
+              onPressed: () => setState(() => _isEditMode = true),
+            )
+          else
+            TextButton(
+              onPressed: () {
+                setState(() => _isEditMode = false);
+                _loadProfile();
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white, fontSize: 15),
+              ),
+            ),
         ],
+      ),
+
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+
+            _buildAvatarSection(),
+            const SizedBox(height: 24),
+            _buildInfoCard(),
+            const SizedBox(height: 20),
+            _buildAccountCard(),
+            const SizedBox(height: 20),
+            if (_isEditMode) _buildSaveButton(),
+            const SizedBox(height: 30),
+
+          ],
+        ),
       ),
     );
   }

@@ -17,6 +17,7 @@ class _LoginPageState extends State<LoginPage> {
 
   bool isHidden = true;
   bool remember = false;
+  bool isLoading = false;
 
   TextEditingController emailController =
   TextEditingController();
@@ -26,44 +27,17 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> loginUser() async {
 
+    if (isLoading) return;
+    setState(() => isLoading = true);
+
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill in all fields"),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text("Please fill in all fields"), backgroundColor: Colors.red),
       );
-
-      return;
-    }
-
-    if (!email.contains('@')) {
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter a valid email"),
-          backgroundColor: Colors.red,
-        ),
-      );
-
-      return;
-    }
-
-    if (password.length < 6) {
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Password must be at least 6 characters",
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-
+      setState(() => isLoading = false);
       return;
     }
 
@@ -74,7 +48,9 @@ class _LoginPageState extends State<LoginPage> {
           .signInWithEmailAndPassword(
         email: email,
         password: password,
-      );
+      ).timeout(const Duration(seconds: 10), onTimeout: () {
+        throw Exception("Firebase Auth timed out");
+      });
 
       String uid = userCredential.user!.uid;
 
@@ -82,125 +58,42 @@ class _LoginPageState extends State<LoginPage> {
       await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 10), onTimeout: () {
+        throw Exception("Firestore timed out");
+      });
+
 
       if (!userDoc.exists) {
-
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("User data not found"),
-            backgroundColor: Colors.red,
-          ),
+          const SnackBar(content: Text("User data not found"), backgroundColor: Colors.red),
         );
-
+        setState(() => isLoading = false);
         return;
       }
 
       String role = userDoc['role'];
 
       if (role == 'customer') {
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Customer login success"),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-            const CustomerDashboard(),
-          ),
-        );
-
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const CustomerDashboard()));
+      } else if (role == 'cleaner') {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const CleanerDashboard()));
+      } else if (role == 'admin') {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminDashboard()));
       }
-
-      else if (role == 'cleaner') {
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Cleaner login success"),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-            const CleanerDashboard(),
-          ),
-        );
-
-      }
-
-      else if (role == 'admin') {
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Admin login success"),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-            const AdminDashboard(),
-          ),
-        );
-
-      }
-
-      else {
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Invalid user role"),
-            backgroundColor: Colors.red,
-          ),
-        );
-
-      }
-
-    } on FirebaseAuthException catch (e) {
-
-      String message = "Login failed";
-
-      if (e.code == 'user-not-found') {
-        message = "Email not registered";
-      }
-
-      else if (e.code == 'wrong-password') {
-        message = "Wrong password";
-      }
-
-      else if (e.code == 'invalid-email') {
-        message = "Invalid email";
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red,
-        ),
-      );
 
     } catch (e) {
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
+        const SnackBar(
+          content: Text("Email or password is incorrect"),
           backgroundColor: Colors.red,
         ),
       );
 
+      setState(() => isLoading = false);
     }
   }
-
   Future<void> resetPassword() async {
 
     final email = emailController.text.trim();
@@ -233,14 +126,18 @@ class _LoginPageState extends State<LoginPage> {
 
     } on FirebaseAuthException catch (e) {
 
-      String message = "Error";
+      String message = "Login failed";
 
       if (e.code == 'user-not-found') {
         message = "Email not registered";
       }
 
+      else if (e.code == 'wrong-password') {
+        message = "Wrong password";
+      }
+
       else if (e.code == 'invalid-email') {
-        message = "Invalid email format";
+        message = "Invalid email";
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -487,7 +384,7 @@ class _LoginPageState extends State<LoginPage> {
                         const SizedBox(height: 10),
 
                         GestureDetector(
-                          onTap: loginUser,
+                          onTap: isLoading ? null : loginUser,
 
                           child: Container(
                             width: double.infinity,
@@ -503,10 +400,18 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
 
-                            child: const Center(
-                              child: Text(
+                            child: Center(
+                              child: isLoading
+                                  ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  color: Colors.green,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                                  : const Text(
                                 "Login",
-
                                 style: TextStyle(
                                   color: Colors.green,
                                   fontSize: 16,

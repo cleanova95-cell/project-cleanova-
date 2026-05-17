@@ -196,9 +196,6 @@ class _AdminDashboardState
         backgroundColor:
         Colors.white,
 
-        type:
-        BottomNavigationBarType.fixed,
-
         onTap: (index) {
 
           setState(() {

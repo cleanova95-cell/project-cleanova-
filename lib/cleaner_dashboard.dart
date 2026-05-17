@@ -76,7 +76,7 @@ class _CleanerDashboardState
     return Scaffold(
       backgroundColor: const Color(0xFFF1FFF3),
 
-      appBar: currentIndex == 0 || currentIndex == 1 || currentIndex == 3
+      appBar: currentIndex == 0 || currentIndex == 1
           ? AppBar(
         elevation: 0,
         centerTitle: true,
@@ -126,7 +126,6 @@ class _CleanerDashboardState
         selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
         backgroundColor: Colors.white,
-        type: BottomNavigationBarType.fixed,
         onTap: (index) {
           setState(() {
             currentIndex = index;
