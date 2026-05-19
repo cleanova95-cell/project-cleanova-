@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cleanova/payment_page.dart';
+
 
 class BookingPage extends StatefulWidget {
   const BookingPage({super.key});
@@ -64,6 +66,7 @@ class _BookingPageState extends State<BookingPage> {
     }
   }
 
+  // ── UBAH SINI SAHAJA ────────────────────────────────────────
   Future<void> saveBooking() async {
     if (selectedDate == null || addressController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -80,36 +83,21 @@ class _BookingPageState extends State<BookingPage> {
       totalPrice = prices[selectedService][selectedSize] ?? 0;
     }
 
-    User? user = FirebaseAuth.instance.currentUser;
-
-    await FirebaseFirestore.instance.collection('bookings').add({
-      'userId': user!.uid,
-      'email': user.email,
-      'service': selectedService,
-      'size': selectedSize,
-      'price': totalPrice,
-      'address': addressController.text,
-      'bookingDate': Timestamp.fromDate(selectedDate!),
-      'status': 'Pending',
-      'created_at': Timestamp.now(),
-      'updated_at': Timestamp.now(),
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Booking Successful'),
-        backgroundColor: Colors.green,
+    // Navigate ke PaymentPage — save ke Firestore akan buat lepas payment berjaya
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PaymentPage(
+          service: selectedService,
+          size: selectedSize,
+          address: addressController.text,
+          bookingDate: selectedDate!,
+          totalPrice: totalPrice,
+        ),
       ),
     );
-
-    addressController.clear();
-
-    setState(() {
-      selectedDate = null;
-      selectedService = 'House Cleaning';
-      selectedSize = 'Small';
-    });
   }
+  // ────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {

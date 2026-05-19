@@ -1,17 +1,14 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
 class PricingManagementPage extends StatefulWidget {
   const PricingManagementPage({super.key});
 
   @override
-  State<PricingManagementPage> createState() =>
-      _PricingManagementPageState();
+  State<PricingManagementPage> createState() => _PricingManagementPageState();
 }
 
-class _PricingManagementPageState
-    extends State<PricingManagementPage> {
-
+class _PricingManagementPageState extends State<PricingManagementPage> {
   final Color primaryGreen = const Color(0xFF2E7D32);
 
   final List<Map<String, dynamic>> services = [
@@ -33,7 +30,7 @@ class _PricingManagementPageState
   ];
 
   Map<String, Map<String, TextEditingController>> controllers = {};
-  Map<String, Map<String, int>> originalPrices = {};
+  Map<String, Map<String, double>> originalPrices = {}; // CHANGE 1: int -> double
 
   bool isLoading = true;
 
@@ -66,9 +63,10 @@ class _PricingManagementPageState
 
       if (doc.exists) {
         final data = doc.data()!;
-        final small = (data['smallPrice'] ?? 0) as int;
-        final medium = (data['mediumPrice'] ?? 0) as int;
-        final large = (data['largePrice'] ?? 0) as int;
+
+        final small = (data['smallPrice'] ?? 0).toDouble();
+        final medium = (data['mediumPrice'] ?? 0).toDouble();
+        final large = (data['largePrice'] ?? 0).toDouble();
 
         controllers[id]!['Small']!.text = small.toString();
         controllers[id]!['Medium']!.text = medium.toString();
@@ -87,14 +85,11 @@ class _PricingManagementPageState
     });
   }
 
-  Future<void> _confirmAndSave(
-      String serviceId, String serviceTitle) async {
-    final newSmall =
-        int.tryParse(controllers[serviceId]!['Small']!.text) ?? 0;
-    final newMedium =
-        int.tryParse(controllers[serviceId]!['Medium']!.text) ?? 0;
-    final newLarge =
-        int.tryParse(controllers[serviceId]!['Large']!.text) ?? 0;
+  Future<void> _confirmAndSave(String serviceId, String serviceTitle) async {
+
+    final newSmall = double.tryParse(controllers[serviceId]!['Small']!.text) ?? 0;
+    final newMedium = double.tryParse(controllers[serviceId]!['Medium']!.text) ?? 0;
+    final newLarge = double.tryParse(controllers[serviceId]!['Large']!.text) ?? 0;
 
     final oldSmall = originalPrices[serviceId]!['Small']!;
     final oldMedium = originalPrices[serviceId]!['Medium']!;
@@ -225,21 +220,21 @@ class _PricingManagementPageState
 
     if (confirmed == true) {
       await _savePrices(serviceId);
-      originalPrices[serviceId] = {
-        'Small': newSmall,
-        'Medium': newMedium,
-        'Large': newLarge,
-      };
+      setState(() {
+        originalPrices[serviceId] = {
+          'Small': newSmall,
+          'Medium': newMedium,
+          'Large': newLarge,
+        };
+      });
     }
   }
 
   Future<void> _savePrices(String serviceId) async {
-    final small =
-        int.tryParse(controllers[serviceId]!['Small']!.text) ?? 0;
-    final medium =
-        int.tryParse(controllers[serviceId]!['Medium']!.text) ?? 0;
-    final large =
-        int.tryParse(controllers[serviceId]!['Large']!.text) ?? 0;
+
+    final small = double.tryParse(controllers[serviceId]!['Small']!.text) ?? 0;
+    final medium = double.tryParse(controllers[serviceId]!['Medium']!.text) ?? 0;
+    final large = double.tryParse(controllers[serviceId]!['Large']!.text) ?? 0;
 
     await FirebaseFirestore.instance
         .collection('service_prices')
@@ -274,12 +269,10 @@ class _PricingManagementPageState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1FFF3),
-
       appBar: AppBar(
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
-
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -292,7 +285,6 @@ class _PricingManagementPageState
             ),
           ),
         ),
-
         title: const Text(
           'Pricing Management',
           style: TextStyle(
@@ -301,7 +293,6 @@ class _PricingManagementPageState
           ),
         ),
       ),
-
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView.builder(
@@ -334,7 +325,6 @@ class _PricingManagementPageState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   Row(
                     children: [
                       Container(
@@ -359,34 +349,25 @@ class _PricingManagementPageState
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 20),
-
                   _priceField('Small', controllers[id]!['Small']!),
                   const SizedBox(height: 12),
                   _priceField('Medium', controllers[id]!['Medium']!),
                   const SizedBox(height: 12),
                   _priceField('Large', controllers[id]!['Large']!),
-
                   const SizedBox(height: 20),
-
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryGreen,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 14,
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
                         ),
                       ),
                       onPressed: () => _confirmAndSave(id, title),
-                      icon: const Icon(
-                        Icons.save,
-                        color: Colors.white,
-                      ),
+                      icon: const Icon(Icons.save, color: Colors.white),
                       label: const Text(
                         'Save Pricing',
                         style: TextStyle(
@@ -397,7 +378,6 @@ class _PricingManagementPageState
                       ),
                     ),
                   ),
-
                 ],
               ),
             ),
@@ -424,7 +404,8 @@ class _PricingManagementPageState
         Expanded(
           child: TextField(
             controller: controller,
-            keyboardType: TextInputType.number,
+
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               prefixText: 'RM ',
               prefixStyle: TextStyle(
