@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cleanova/payment_page.dart';
+import 'package:cleanova/order_summary_page.dart';
+
 
 
 class BookingPage extends StatefulWidget {
@@ -83,11 +84,10 @@ class _BookingPageState extends State<BookingPage> {
       totalPrice = prices[selectedService][selectedSize] ?? 0;
     }
 
-    // Navigate ke PaymentPage — save ke Firestore akan buat lepas payment berjaya
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PaymentPage(
+        builder: (context) => OrderSummaryPage(
           service: selectedService,
           size: selectedSize,
           address: addressController.text,
@@ -97,7 +97,6 @@ class _BookingPageState extends State<BookingPage> {
       ),
     );
   }
-  // ────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {

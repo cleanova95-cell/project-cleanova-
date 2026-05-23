@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:cleanova/receipt_page.dart';
 
 class PaymentPage extends StatefulWidget {
   final String service;
@@ -27,29 +27,13 @@ class PaymentPage extends StatefulWidget {
 }
 
 class _PaymentPageState extends State<PaymentPage> {
-  static const String _stripeSecretKey = 'sk_test_51TYse0ILpdbUz8ZmOY72lJXr0qXuNOcddKEHvq6JbKt2ctfy9ufxQ2J93r9zrDKjCc4GWmkZy3DDcT4t7ODR2FNR00sfiYl4RA';
+  static const String _stripeSecretKey =
+      'sk_test_51TYse0ILpdbUz8ZmOY72lJXr0qXuNOcddKEHvq6JbKt2ctfy9ufxQ2J93r9zrDKjCc4GWmkZy3DDcT4t7ODR2FNR00sfiYl4RA';
 
-  String  selectedMethod = 'card';
-  String? selectedBank;
-  bool    isProcessing   = false;
+  String selectedMethod = 'card';
+  bool isProcessing = false;
 
-  final List<Map<String, String>> fpxBanks = [
-    {'id': 'maybank2u',        'name': 'Maybank2u'},
-    {'id': 'cimb',             'name': 'CIMB Clicks'},
-    {'id': 'public_bank',      'name': 'Public Bank'},
-    {'id': 'rhb',              'name': 'RHB Now'},
-    {'id': 'hong_leong_bank',  'name': 'Hong Leong'},
-    {'id': 'ambank',           'name': 'AmBank'},
-    {'id': 'bank_islam',       'name': 'Bank Islam'},
-    {'id': 'bsn',              'name': 'BSN'},
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-
+  // ── Create Payment Intent (Card) ─────────────────────────────
   Future<String?> _createPaymentIntent() async {
     try {
       final response = await http.post(
@@ -59,13 +43,12 @@ class _PaymentPageState extends State<PaymentPage> {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: {
-          'amount':                 (widget.totalPrice * 100).toString(),
-          'currency':               'myr',
+          'amount': (widget.totalPrice * 100).toString(),
+          'currency': 'myr',
           'payment_method_types[]': 'card',
-          'description':            '${widget.service} - ${widget.size}',
+          'description': '${widget.service} - ${widget.size}',
         },
       );
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data['client_secret'] as String?;
@@ -78,60 +61,79 @@ class _PaymentPageState extends State<PaymentPage> {
     }
   }
 
+  // ── Create Payment Intent (GrabPay) ──────────────────────────
+  Future<Map<String, String>?> _createGrabPayIntent() async {
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.stripe.com/v1/payment_intents'),
+        headers: {
+          'Authorization': 'Bearer $_stripeSecretKey',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'amount': (widget.totalPrice * 100).toString(),
+          'currency': 'myr',
+          'payment_method_types[]': 'grabpay',
+          'description': '${widget.service} - ${widget.size}',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'client_secret': data['client_secret'] as String,
+          'id': data['id'] as String,
+        };
+      }
+      debugPrint('GrabPay intent error: ${response.body}');
+      return null;
+    } catch (e) {
+      debugPrint('GrabPay intent error: $e');
+      return null;
+    }
+  }
 
+  // ── Save to Firestore ────────────────────────────────────────
   Future<void> _saveToFirestore({
     required String paymentIntentId,
     required String paymentMethod,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
-
     await FirebaseFirestore.instance.collection('bookings').add({
-      'userId':          user?.uid,
-      'email':           user?.email,
-      'service':         widget.service,
-      'size':            widget.size,
-      'address':         widget.address,
-      'bookingDate':     Timestamp.fromDate(widget.bookingDate),
-      'price':           widget.totalPrice,
-      'status':          'Confirmed',
-      'paymentStatus':   'Paid',
-      'paymentMethod':   paymentMethod,
+      'userId': user?.uid,
+      'email': user?.email,
+      'service': widget.service,
+      'size': widget.size,
+      'address': widget.address,
+      'bookingDate': Timestamp.fromDate(widget.bookingDate),
+      'price': widget.totalPrice,
+      'status': 'Confirmed',
+      'paymentStatus': 'Paid',
+      'paymentMethod': paymentMethod,
       'paymentIntentId': paymentIntentId,
-      'paidAt':          Timestamp.now(),
-      'created_at':      Timestamp.now(),
-      'updated_at':      Timestamp.now(),
+      'paidAt': Timestamp.now(),
+      'created_at': Timestamp.now(),
+      'updated_at': Timestamp.now(),
     });
   }
 
-
+  // ── Pay with Card ────────────────────────────────────────────
   Future<void> _payWithCard() async {
     setState(() => isProcessing = true);
-
     try {
-
-      if (kIsWeb) {
-        await Future.delayed(const Duration(seconds: 2));
-        await _saveToFirestore(
-          paymentIntentId: 'web_test_${DateTime.now().millisecondsSinceEpoch}',
-          paymentMethod:   'Credit/Debit Card',
-        );
-        if (!mounted) return;
-        _goToReceipt('Credit/Debit Card');
-        return;
-      }
-
-
       final clientSecret = await _createPaymentIntent();
       if (clientSecret == null) throw Exception('Failed to create payment intent');
 
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: clientSecret,
-          merchantDisplayName:       'CleaningApp',
-          style:                     ThemeMode.light,
+          merchantDisplayName: 'CleaNova',
+          style: ThemeMode.light,
           appearance: PaymentSheetAppearance(
             colors: PaymentSheetAppearanceColors(
               primary: const Color(0xFF43A047),
+            ),
+            shapes: PaymentSheetShape(
+              borderRadius: 16,
             ),
           ),
         ),
@@ -140,69 +142,81 @@ class _PaymentPageState extends State<PaymentPage> {
       await Stripe.instance.presentPaymentSheet();
 
       final paymentIntentId = clientSecret.split('_secret_')[0];
-
       await _saveToFirestore(
         paymentIntentId: paymentIntentId,
-        paymentMethod:   'Credit/Debit Card',
+        paymentMethod: 'Credit / Debit Card',
       );
 
       if (!mounted) return;
-      _goToReceipt('Credit/Debit Card');
-
+      _goToReceipt('Credit / Debit Card');
     } on StripeException catch (e) {
       setState(() => isProcessing = false);
       if (e.error.code == FailureCode.Canceled) return;
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content:         Text('Payment failed: ${e.error.localizedMessage}'),
-        backgroundColor: Colors.red,
-      ));
+      _showError('Payment failed: ${e.error.localizedMessage}');
     } catch (e) {
       setState(() => isProcessing = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content:         Text('Something went wrong: $e'),
-        backgroundColor: Colors.red,
-      ));
+      _showError('Something went wrong. Please try again.');
     }
-
-    setState(() => isProcessing = false);
+    if (mounted) setState(() => isProcessing = false);
   }
 
-  // ── Pay with FPX ──────────────────────────────────────────────
-  Future<void> _payWithFPX() async {
-    if (selectedBank == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content:         Text('Sila pilih bank anda'),
-        backgroundColor: Colors.red,
-      ));
-      return;
-    }
-
+  // ── Pay with GrabPay ─────────────────────────────────────────
+  Future<void> _payWithGrabPay() async {
     setState(() => isProcessing = true);
-
     try {
-      // Test mode: simulate FPX payment berjaya
-      await Future.delayed(const Duration(seconds: 2));
+      final intentData = await _createGrabPayIntent();
+      if (intentData == null) throw Exception('Failed to create GrabPay intent');
+
+      final clientSecret = intentData['client_secret']!;
+      final intentId = intentData['id']!;
+
+      await Stripe.instance.initPaymentSheet(
+        paymentSheetParameters: SetupPaymentSheetParameters(
+          paymentIntentClientSecret: clientSecret,
+          merchantDisplayName: 'CleaNova',
+          style: ThemeMode.light,
+          appearance: PaymentSheetAppearance(
+            colors: PaymentSheetAppearanceColors(
+              primary: const Color(0xFF00B14F),
+            ),
+            shapes: PaymentSheetShape(
+              borderRadius: 16,
+            ),
+          ),
+        ),
+      );
+
+      await Stripe.instance.presentPaymentSheet();
 
       await _saveToFirestore(
-        paymentIntentId: 'fpx_test_${DateTime.now().millisecondsSinceEpoch}',
-        paymentMethod:   'FPX - $selectedBank',
+        paymentIntentId: intentId,
+        paymentMethod: 'GrabPay',
       );
 
       if (!mounted) return;
-      _goToReceipt('FPX - $selectedBank');
-
+      _goToReceipt('GrabPay');
+    } on StripeException catch (e) {
+      setState(() => isProcessing = false);
+      if (e.error.code == FailureCode.Canceled) return;
+      if (!mounted) return;
+      _showError('GrabPay failed: ${e.error.localizedMessage}');
     } catch (e) {
       setState(() => isProcessing = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content:         Text('FPX error: $e'),
-        backgroundColor: Colors.red,
-      ));
+      _showError('Something went wrong. Please try again.');
     }
+    if (mounted) setState(() => isProcessing = false);
+  }
 
-    setState(() => isProcessing = false);
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: Colors.red,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ));
   }
 
   void _goToReceipt(String paymentMethod) {
@@ -210,11 +224,11 @@ class _PaymentPageState extends State<PaymentPage> {
       context,
       MaterialPageRoute(
         builder: (_) => ReceiptPage(
-          service:       widget.service,
-          size:          widget.size,
-          address:       widget.address,
-          bookingDate:   widget.bookingDate,
-          totalPrice:    widget.totalPrice,
+          service: widget.service,
+          size: widget.size,
+          address: widget.address,
+          bookingDate: widget.bookingDate,
+          totalPrice: widget.totalPrice,
           paymentMethod: paymentMethod,
         ),
       ),
@@ -227,242 +241,244 @@ class _PaymentPageState extends State<PaymentPage> {
       backgroundColor: const Color(0xFFF1FFF3),
       appBar: AppBar(
         elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF43A047), Color(0xFF66BB6A)],
+              colors: [Color(0xFF2E7D32), Color(0xFF43A047), Color(0xFF66BB6A)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: const Text(
           'Payment',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
       ),
       body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // ── Order Summary ────────────────────────────────
-            const Text('Order Summary',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-
+            // ── Amount Banner ────────────────────────────────
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 8)],
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF2E7D32), Color(0xFF43A047), Color(0xFF66BB6A)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF43A047).withOpacity(0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-              child: Column(children: [
-                _summaryRow(Icons.cleaning_services_outlined, 'Service', widget.service),
-                const SizedBox(height: 10),
-                _summaryRow(Icons.straighten_outlined, 'Size', widget.size),
-                const SizedBox(height: 10),
-                _summaryRow(Icons.calendar_month_outlined, 'Date',
-                    '${widget.bookingDate.day}/${widget.bookingDate.month}/${widget.bookingDate.year}'),
-                const SizedBox(height: 10),
-                _summaryRow(Icons.location_on_outlined, 'Address', widget.address),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(height: 1, color: Color(0xFFE8F5E9)),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Total Amount',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
-                    Text('RM ${widget.totalPrice}',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF43A047))),
-                  ],
-                ),
-              ]),
+              child: Column(
+                children: [
+                  const Text(
+                    'Total Amount',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'RM ${widget.totalPrice}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      '${widget.service} · ${widget.size}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
 
             const SizedBox(height: 28),
 
-            // ── Payment Method ───────────────────────────────
-            const Text('Payment Method',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            // ── Payment Method Label ─────────────────────────
+            const Text(
+              'Select Payment Method',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1B5E20),
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // ── Card Option ──────────────────────────────────
+            _PaymentMethodTile(
+              value: 'card',
+              groupValue: selectedMethod,
+              onChanged: (val) => setState(() => selectedMethod = val!),
+              icon: Icons.credit_card_rounded,
+              iconColor: const Color(0xFF1565C0),
+              iconBg: const Color(0xFFE3F2FD),
+              title: 'Credit / Debit Card',
+              subtitle: 'Visa, Mastercard, American Express',
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _CardBadge('VISA', const Color(0xFF1A1F71)),
+                  const SizedBox(width: 4),
+                  _CardBadge('MC', const Color(0xFFEB001B)),
+                ],
+              ),
+            ),
+
             const SizedBox(height: 12),
 
-            Row(children: [
-              Expanded(child: _methodTab(
-                label: 'Credit / Debit\nCard',
-                icon: Icons.credit_card_outlined,
-                isSelected: selectedMethod == 'card',
-                onTap: () => setState(() => selectedMethod = 'card'),
-              )),
-              const SizedBox(width: 12),
-              Expanded(child: _methodTab(
-                label: 'FPX Online\nBanking',
-                icon: Icons.account_balance_outlined,
-                isSelected: selectedMethod == 'fpx',
-                onTap: () => setState(() => selectedMethod = 'fpx'),
-              )),
-            ]),
-
-            const SizedBox(height: 20),
-
-            // ── Card Panel ───────────────────────────────────
-            if (selectedMethod == 'card') ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
+            // ── GrabPay Option ───────────────────────────────
+            _PaymentMethodTile(
+              value: 'grabpay',
+              groupValue: selectedMethod,
+              onChanged: (val) => setState(() => selectedMethod = val!),
+              icon: Icons.account_balance_wallet_rounded,
+              iconColor: const Color(0xFF00B14F),
+              iconBg: const Color(0xFFE8F5E9),
+              title: 'GrabPay',
+              subtitle: 'Pay with your Grab wallet',
+              trailing: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 8)],
+                  color: const Color(0xFF00B14F),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Column(children: [
-                  const Icon(Icons.credit_card, color: Color(0xFF43A047), size: 40),
-                  const SizedBox(height: 12),
-                  const Text('Card details collected securely',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 6),
-                  Text(
-                    kIsWeb
-                        ? 'Test mode — payment akan simulate terus.'
-                        : 'Tekan Pay — Stripe akan tunjukkan\nform card yang selamat.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                child: const Text(
+                  'Grab',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFFDE7),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFFFF176)),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.info_outline, color: Color(0xFFF9A825), size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Test Mode — Guna card ni:',
-                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF795548))),
-                              const SizedBox(height: 4),
-                              Text(
-                                '4242 4242 4242 4242\nExpiry: 12/34  CVV: 123',
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade700, fontFamily: 'monospace'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ]),
+                ),
               ),
-            ],
+            ),
 
-            // ── FPX Panel ────────────────────────────────────
-            if (selectedMethod == 'fpx') ...[
-              Container(
-                padding: const EdgeInsets.all(18),
+            const SizedBox(height: 24),
+
+            // ── Upload Receipt Button (UI only) ──────────────
+            GestureDetector(
+              onTap: () {},
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 8)],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Select Your Bank',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
-                    const SizedBox(height: 14),
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 3.2,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                      ),
-                      itemCount: fpxBanks.length,
-                      itemBuilder: (context, i) {
-                        final bank       = fpxBanks[i];
-                        final isSelected = selectedBank == bank['name'];
-                        return GestureDetector(
-                          onTap: () => setState(() => selectedBank = bank['name']),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFFE8F5E9) : const Color(0xFFF7FFF8),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected ? const Color(0xFF43A047) : const Color(0xFFD4E8D4),
-                                width: isSelected ? 2 : 1,
-                              ),
-                            ),
-                            child: Row(children: [
-                              Icon(Icons.account_balance_outlined,
-                                  color: isSelected ? const Color(0xFF43A047) : Colors.grey, size: 18),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(bank['name']!,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                      color: isSelected ? const Color(0xFF2E7D32) : Colors.black87,
-                                    ),
-                                    overflow: TextOverflow.ellipsis),
-                              ),
-                            ]),
-                          ),
-                        );
-                      },
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFA5D6A7),
+                    width: 1.5,
+                    style: BorderStyle.solid,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.green.shade100.withOpacity(0.5),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
                     ),
-                    const SizedBox(height: 12),
+                  ],
+                ),
+                child: Row(
+                  children: [
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFFDE7),
+                        color: const Color(0xFFE8F5E9),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFFFF176)),
                       ),
-                      child: Row(children: [
-                        const Icon(Icons.info_outline, color: Color(0xFFF9A825), size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Test mode — FPX akan simulate payment berjaya terus.',
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                      child: const Icon(
+                        Icons.upload_file_rounded,
+                        color: Color(0xFF43A047),
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Upload Payment Receipt',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1B5E20),
+                            ),
                           ),
-                        ),
-                      ]),
+                          SizedBox(height: 2),
+                          Text(
+                            'Optional — attach proof of payment',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: Color(0xFF43A047),
+                      size: 16,
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 28),
 
             // ── Secure Badge ─────────────────────────────────
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.lock_outline, color: Color(0xFF43A047), size: 16),
+                const Icon(Icons.lock_outline_rounded,
+                    color: Color(0xFF43A047), size: 14),
                 const SizedBox(width: 6),
-                Text('Secured by Stripe · Your data is encrypted',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                Text(
+                  'Secured by Stripe · 256-bit SSL Encryption',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
               ],
             ),
 
@@ -471,22 +487,76 @@ class _PaymentPageState extends State<PaymentPage> {
             // ── Pay Button ───────────────────────────────────
             SizedBox(
               width: double.infinity,
-              height: 60,
+              height: 58,
               child: ElevatedButton(
                 onPressed: isProcessing
                     ? null
-                    : () => selectedMethod == 'card' ? _payWithCard() : _payWithFPX(),
+                    : () {
+                  if (selectedMethod == 'card') {
+                    _payWithCard();
+                  } else {
+                    _payWithGrabPay();
+                  }
+                },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF43A047),
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  elevation: 4,
+                  shadowColor: const Color(0xFF43A047).withOpacity(0.4),
                   disabledBackgroundColor: Colors.grey.shade300,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
-                child: isProcessing
-                    ? const SizedBox(
-                    width: 24, height: 24,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                    : Text('Pay RM ${widget.totalPrice}',
-                    style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: isProcessing
+                        ? null
+                        : const LinearGradient(
+                      colors: [
+                        Color(0xFF2E7D32),
+                        Color(0xFF43A047),
+                        Color(0xFF66BB6A)
+                      ],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Container(
+                    alignment: Alignment.center,
+                    child: isProcessing
+                        ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    )
+                        : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          selectedMethod == 'card'
+                              ? Icons.credit_card_rounded
+                              : Icons.account_balance_wallet_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Pay RM ${widget.totalPrice}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
 
@@ -496,239 +566,153 @@ class _PaymentPageState extends State<PaymentPage> {
       ),
     );
   }
+}
 
-  Widget _summaryRow(IconData icon, String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: const Color(0xFF43A047), size: 20),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-              const SizedBox(height: 2),
-              Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+// ── Payment Method Tile ──────────────────────────────────────────
+class _PaymentMethodTile extends StatelessWidget {
+  final String value;
+  final String groupValue;
+  final ValueChanged<String?> onChanged;
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBg;
+  final String title;
+  final String subtitle;
+  final Widget trailing;
 
-  Widget _methodTab({
-    required String label,
-    required IconData icon,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
+  const _PaymentMethodTile({
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+    required this.icon,
+    required this.iconColor,
+    required this.iconBg,
+    required this.title,
+    required this.subtitle,
+    required this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isSelected = value == groupValue;
+
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+      onTap: () => onChanged(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFE8F5E9) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: isSelected ? const Color(0xFF43A047) : const Color(0xFFD4E8D4),
             width: isSelected ? 2 : 1,
           ),
-          boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 6)],
+          boxShadow: [
+            BoxShadow(
+              color: isSelected
+                  ? const Color(0xFF43A047).withOpacity(0.15)
+                  : Colors.grey.shade100,
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: Column(children: [
-          Icon(icon, color: isSelected ? const Color(0xFF43A047) : Colors.grey, size: 26),
-          const SizedBox(height: 6),
-          Text(label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? const Color(0xFF2E7D32) : Colors.black54,
-              )),
-        ]),
+        child: Row(
+          children: [
+            // Radio
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? const Color(0xFF43A047) : Colors.grey.shade400,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? Center(
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFF43A047),
+                  ),
+                ),
+              )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            // Icon
+            Container(
+              padding: const EdgeInsets.all(9),
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: 12),
+            // Text
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected
+                          ? const Color(0xFF1B5E20)
+                          : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            trailing,
+          ],
+        ),
       ),
     );
   }
 }
 
 
-// ─────────────────────────────────────────────────────────────────
-//  Receipt Page
-// ─────────────────────────────────────────────────────────────────
 
-class ReceiptPage extends StatelessWidget {
-  final String   service;
-  final String   size;
-  final String   address;
-  final DateTime bookingDate;
-  final int      totalPrice;
-  final String   paymentMethod;
+// ── Card Badge ───────────────────────────────────────────────────
+class _CardBadge extends StatelessWidget {
+  final String text;
+  final Color color;
 
-  const ReceiptPage({
-    super.key,
-    required this.service,
-    required this.size,
-    required this.address,
-    required this.bookingDate,
-    required this.totalPrice,
-    required this.paymentMethod,
-  });
+  const _CardBadge(this.text, this.color);
 
   @override
   Widget build(BuildContext context) {
-    final receiptNo = 'RCP${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-    final now       = DateTime.now();
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF1FFF3),
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF43A047), Color(0xFF66BB6A)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
         ),
-        title: const Text('Receipt',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(children: [
-
-          const SizedBox(height: 10),
-
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: const BoxDecoration(color: Color(0xFFE8F5E9), shape: BoxShape.circle),
-            child: const Icon(Icons.check_circle_outline, color: Color(0xFF43A047), size: 60),
-          ),
-
-          const SizedBox(height: 16),
-
-          const Text('Payment Successful!',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
-
-          const SizedBox(height: 4),
-
-          Text('Booking anda telah disahkan.',
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
-
-          const SizedBox(height: 28),
-
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 10)],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Receipt',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(receiptNo,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF43A047))),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-                const Divider(color: Color(0xFFE8F5E9)),
-                const SizedBox(height: 12),
-
-                _receiptRow('Service',      service),
-                _receiptRow('Size',         size),
-                _receiptRow('Booking Date', '${bookingDate.day}/${bookingDate.month}/${bookingDate.year}'),
-                _receiptRow('Address',      address),
-                _receiptRow('Payment',      paymentMethod),
-                _receiptRow('Date Paid',    '${now.day}/${now.month}/${now.year}  ${now.hour}:${now.minute.toString().padLeft(2,'0')}'),
-
-                const SizedBox(height: 12),
-                const Divider(color: Color(0xFFE8F5E9)),
-                const SizedBox(height: 12),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Total Paid',
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
-                    Text('RM $totalPrice',
-                        style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF43A047))),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.lock_outline, size: 13, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text('Powered by Stripe',
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 28),
-
-          SizedBox(
-            width: double.infinity,
-            height: 58,
-            child: ElevatedButton(
-              onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF43A047),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              ),
-              child: const Text('Back to Home',
-                  style: TextStyle(fontSize: 17, color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ),
-
-          const SizedBox(height: 30),
-        ]),
-      ),
-    );
-  }
-
-  Widget _receiptRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(label, style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
-          ),
-          Expanded(
-            child: Text(value,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                textAlign: TextAlign.right),
-          ),
-        ],
       ),
     );
   }

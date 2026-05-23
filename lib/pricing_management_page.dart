@@ -30,7 +30,7 @@ class _PricingManagementPageState extends State<PricingManagementPage> {
   ];
 
   Map<String, Map<String, TextEditingController>> controllers = {};
-  Map<String, Map<String, double>> originalPrices = {}; // CHANGE 1: int -> double
+  Map<String, Map<String, double>> originalPrices = {};
 
   bool isLoading = true;
 
