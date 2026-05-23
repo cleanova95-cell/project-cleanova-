@@ -116,6 +116,24 @@ class _PaymentPageState extends State<PaymentPage> {
     });
   }
 
+  // ── Verify Payment Intent ───────────────────────────────────
+  Future<bool> _verifyPaymentIntent(String paymentIntentId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.stripe.com/v1/payment_intents/$paymentIntentId'),
+        headers: {'Authorization': 'Bearer $_stripeSecretKey'},
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['status'] == 'succeeded';
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Verify error: $e');
+      return false;
+    }
+  }
+
   // ── Pay with Card ────────────────────────────────────────────
   Future<void> _payWithCard() async {
     setState(() => isProcessing = true);
@@ -141,7 +159,17 @@ class _PaymentPageState extends State<PaymentPage> {
 
       await Stripe.instance.presentPaymentSheet();
 
+      // ── Verify payment actually succeeded before saving ──
       final paymentIntentId = clientSecret.split('_secret_')[0];
+      final isSucceeded = await _verifyPaymentIntent(paymentIntentId);
+
+      if (!isSucceeded) {
+        if (!mounted) return;
+        _showError('Payment was not completed. Please try again.');
+        setState(() => isProcessing = false);
+        return;
+      }
+
       await _saveToFirestore(
         paymentIntentId: paymentIntentId,
         paymentMethod: 'Credit / Debit Card',
@@ -161,6 +189,7 @@ class _PaymentPageState extends State<PaymentPage> {
     }
     if (mounted) setState(() => isProcessing = false);
   }
+
 
   // ── Pay with GrabPay ─────────────────────────────────────────
   Future<void> _payWithGrabPay() async {
