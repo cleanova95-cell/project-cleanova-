@@ -5,6 +5,9 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:cleanova/receipt_page.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class PaymentPage extends StatefulWidget {
   final String service;
@@ -32,7 +35,8 @@ class _PaymentPageState extends State<PaymentPage> {
 
   String selectedMethod = 'card';
   bool isProcessing = false;
-
+  File? _receiptImage;
+  bool _uploadingReceipt = false;
   // ── Create Payment Intent (Card) ─────────────────────────────
   Future<String?> _createPaymentIntent() async {
     try {
@@ -264,6 +268,97 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
+  Future<void> _pickReceiptImage() async {
+    final picker = ImagePicker();
+
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery, // or ImageSource.camera
+      imageQuality: 80,
+    );
+
+    if (pickedFile == null) return;
+
+    setState(() {
+      _receiptImage = File(pickedFile.path);
+    });
+
+    _uploadReceipt();
+  }
+  Future<String?> _uploadReceiptToStorage(File image) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      final fileName =
+          'receipts/${user!.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+
+      await ref.putFile(image);
+
+      return await ref.getDownloadURL();
+    } catch (e) {
+      debugPrint('Upload error: $e');
+      return null;
+    }
+  }
+  Future<void> _saveReceiptPayment(String? imageUrl) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    await FirebaseFirestore.instance.collection('bookings').add({
+      'userId': user?.uid,
+      'email': user?.email,
+      'service': widget.service,
+      'size': widget.size,
+      'address': widget.address,
+      'bookingDate': Timestamp.fromDate(widget.bookingDate),
+      'price': widget.totalPrice,
+
+      'paymentMethod': 'Bank Transfer',
+      'paymentStatus': 'Pending Verification',
+
+      'receiptImage': imageUrl,
+
+      'status': 'Pending',
+      'created_at': Timestamp.now(),
+      'updated_at': Timestamp.now(),
+    });
+  }
+  Future<void> _uploadReceipt() async {
+    if (_receiptImage == null) return;
+
+    setState(() => _uploadingReceipt = true);
+
+    try {
+      // final url = await _uploadReceiptToStorage(_receiptImage!); //
+      //
+      // // if (url == null) {
+      // //   _showError('Upload failed');
+      // //   return;
+      // // }
+      final url = null;
+      await _saveReceiptPayment(url);
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ReceiptPage(
+            service: widget.service,
+            size: widget.size,
+            address: widget.address,
+            bookingDate: widget.bookingDate,
+            totalPrice: widget.totalPrice,
+            paymentMethod: 'Bank Transfer (Receipt Uploaded)',
+          ),
+        ),
+      );
+    } catch (e) {
+      _showError('Receipt upload failed');
+    } finally {
+      if (mounted) setState(() => _uploadingReceipt = false);
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -427,7 +522,7 @@ class _PaymentPageState extends State<PaymentPage> {
 
             // ── Upload Receipt Button (UI only) ──────────────
             GestureDetector(
-              onTap: () {},
+              onTap: _pickReceiptImage,
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
