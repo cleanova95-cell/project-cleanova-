@@ -8,12 +8,10 @@ class BookingHistoryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     User? user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1FFF3),
-
       appBar: AppBar(
         automaticallyImplyLeading: false,
         elevation: 0,
@@ -35,10 +33,8 @@ class BookingHistoryPage extends StatelessWidget {
           ),
         ),
       ),
-
       body: Column(
         children: [
-
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(25),
@@ -67,15 +63,11 @@ class BookingHistoryPage extends StatelessWidget {
                 SizedBox(height: 8),
                 Text(
                   'Track your booking details and service status easily.',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                  ),
+                  style: TextStyle(color: Colors.white, fontSize: 15),
                 ),
               ],
             ),
           ),
-
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -83,9 +75,7 @@ class BookingHistoryPage extends StatelessWidget {
                   .where('userId', isEqualTo: user!.uid)
                   .orderBy('created_at', descending: true)
                   .snapshots(),
-
               builder: (context, snapshot) {
-
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
                     child: CircularProgressIndicator(color: Colors.green),
@@ -112,16 +102,14 @@ class BookingHistoryPage extends StatelessWidget {
                 return ListView.builder(
                   padding: const EdgeInsets.all(20),
                   itemCount: snapshot.data!.docs.length,
-
                   itemBuilder: (context, index) {
-
                     var booking = snapshot.data!.docs[index];
                     final data = booking.data() as Map<String, dynamic>;
 
                     final service = data['service'] ?? 'No Service';
-                    final size = data['size'] ?? '-';
-                    final price = data['price'] ?? 0;
-                    final status = (data['status'] ?? 'Pending').toString();
+                    final size    = data['size']    ?? '-';
+                    final price   = data['price']   ?? 0;
+                    final status  = (data['status'] ?? 'Pending').toString();
                     final address = data['address'] ?? '-';
 
                     DateTime date = DateTime.now();
@@ -130,14 +118,27 @@ class BookingHistoryPage extends StatelessWidget {
                     }
 
                     Color statusColor;
-                    if (status == 'Pending') {
-                      statusColor = Colors.orange;
-                    } else if (status == 'Cancelled') {
-                      statusColor = Colors.red;
-                    } else if (status == 'Assigned') {
-                      statusColor = Colors.blue;
-                    } else {
-                      statusColor = Colors.green;
+                    switch (status) {
+                      case 'Pending':
+                        statusColor = Colors.orange;
+                        break;
+                      case 'Cancelled':
+                        statusColor = Colors.red;
+                        break;
+                      case 'Assigned':
+                        statusColor = Colors.green;
+                        break;
+                      case 'On The Way':
+                        statusColor = Colors.deepOrange.shade800;
+                        break;
+                      case 'Arrived':
+                        statusColor = Colors.purple;
+                        break;
+                      case 'In Progress':
+                        statusColor = Colors.blue.shade800;
+                        break;
+                      default:
+                        statusColor = Colors.indigo;
                     }
 
                     return GestureDetector(
@@ -145,12 +146,10 @@ class BookingHistoryPage extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                BookingDetailsPage(booking: booking),
+                            builder: (context) => BookingDetailsPage(booking: booking),
                           ),
                         );
                       },
-
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 20),
                         padding: const EdgeInsets.all(20),
@@ -165,15 +164,12 @@ class BookingHistoryPage extends StatelessWidget {
                             ),
                           ],
                         ),
-
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-
                                 Expanded(
                                   child: Text(
                                     service,
@@ -183,7 +179,6 @@ class BookingHistoryPage extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 15,
@@ -203,27 +198,16 @@ class BookingHistoryPage extends StatelessWidget {
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 20),
-
-                            bookingInfo(Icons.calendar_month,
-                                'Booking Date',
+                            bookingInfo(Icons.calendar_month, 'Booking Date',
                                 '${date.day}/${date.month}/${date.year}'),
-
                             const SizedBox(height: 15),
-
                             bookingInfo(Icons.home, 'Property Size', size),
-
                             const SizedBox(height: 15),
-
                             bookingInfo(Icons.attach_money, 'Total Price', 'RM$price'),
-
                             const SizedBox(height: 15),
-
                             bookingInfo(Icons.location_on, 'Address', address),
-
                             const SizedBox(height: 20),
-
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
@@ -238,15 +222,12 @@ class BookingHistoryPage extends StatelessWidget {
                                 const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                               ],
                             ),
-
                             const SizedBox(height: 15),
-
                             if (status == 'Pending')
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
                                   onPressed: () async {
-
                                     await FirebaseFirestore.instance
                                         .collection('bookings')
                                         .doc(booking.id)
@@ -254,7 +235,6 @@ class BookingHistoryPage extends StatelessWidget {
                                       'status': 'Cancelled',
                                       'updated_at': Timestamp.now(),
                                     });
-
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red,
@@ -272,7 +252,6 @@ class BookingHistoryPage extends StatelessWidget {
                                   ),
                                 ),
                               ),
-
                           ],
                         ),
                       ),
@@ -303,12 +282,9 @@ class BookingHistoryPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(color: Colors.grey, fontSize: 14)),
+              Text(title, style: const TextStyle(color: Colors.grey, fontSize: 14)),
               const SizedBox(height: 5),
-              Text(value,
-                  style: const TextStyle(
-                      fontSize: 17, fontWeight: FontWeight.bold)),
+              Text(value, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
             ],
           ),
         ),

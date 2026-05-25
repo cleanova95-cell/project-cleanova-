@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cleanova/job_detail_page.dart';
 
 class JobsPage extends StatelessWidget {
   const JobsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-
     User? user = FirebaseAuth.instance.currentUser;
 
     return StreamBuilder(
@@ -15,9 +15,7 @@ class JobsPage extends StatelessWidget {
           .collection('bookings')
           .where('cleanerId', isEqualTo: user?.uid)
           .snapshots(),
-
       builder: (context, snapshot) {
-
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: CircularProgressIndicator(color: Colors.green),
@@ -73,171 +71,122 @@ class JobsPage extends StatelessWidget {
         return ListView.builder(
           padding: const EdgeInsets.all(20),
           itemCount: bookings.length,
-
           itemBuilder: (context, index) {
-
             var booking = bookings[index];
             final data = booking.data() as Map<String, dynamic>;
 
             final service = data['service'] ?? '-';
-            final email   = data['email']   ?? '-';
             final address = data['address'] ?? '-';
-            final size    = data['size']    ?? '-';
-            final price   = data['price']   ?? 0;
             final status  = (data['status'] ?? 'Pending').toString();
 
-            bool isCancelled = status == 'Cancelled';
-            bool isCompleted = status == 'Completed';
+            String bookingDate = '-';
+            if (data['bookingDate'] != null) {
+              final date = (data['bookingDate'] as Timestamp).toDate();
+              bookingDate = '${date.day}/${date.month}/${date.year}';
+            }
 
-            return Container(
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.shade200,
-                    blurRadius: 8,
+            Color statusBgColor;
+            Color statusTextColor;
+            switch (status) {
+              case 'On The Way':
+                statusBgColor = Colors.orange.shade100;
+                statusTextColor = Colors.orange.shade800;
+                break;
+              case 'Arrived':
+                statusBgColor = Colors.purple.shade100;
+                statusTextColor = Colors.purple.shade800;
+                break;
+              case 'In Progress':
+                statusBgColor = Colors.blue.shade100;
+                statusTextColor = Colors.blue.shade800;
+                break;
+              case 'Completed':
+                statusBgColor = Colors.indigo.shade100;
+                statusTextColor = Colors.indigo;
+                break;
+              case 'Cancelled':
+                statusBgColor = Colors.grey.shade300;
+                statusTextColor = Colors.grey;
+                break;
+              default:
+                statusBgColor = Colors.green.shade100;
+                statusTextColor = Colors.green;
+            }
+
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => JobDetailPage(bookingId: booking.id),
                   ),
-                ],
-              ),
-
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-
-                      Expanded(
-                        child: Text(
-                          service,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isCancelled
-                              ? Colors.grey.shade300
-                              : isCompleted
-                              ? Colors.blue.shade100
-                              : Colors.green.shade100,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          status,
-                          style: TextStyle(
-                            color: isCancelled
-                                ? Colors.grey
-                                : isCompleted
-                                ? Colors.blue
-                                : Colors.green,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-
-                    ],
-                  ),
-
-                  const SizedBox(height: 18),
-
-                  infoRow(Icons.person,       email),
-                  const SizedBox(height: 12),
-                  infoRow(Icons.location_on,  address),
-                  const SizedBox(height: 12),
-                  infoRow(Icons.home_work,    size),
-                  const SizedBox(height: 12),
-                  infoRow(Icons.attach_money, 'RM $price'),
-
-                  const SizedBox(height: 25),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      onPressed: isCancelled || isCompleted
-                          ? null
-                          : () async {
-
-                        final doc = await FirebaseFirestore.instance
-                            .collection('bookings')
-                            .doc(booking.id)
-                            .get();
-
-                        final data = doc.data();
-
-                        if (data?['cleanerId'] != user?.uid) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Not your job'),
-                              backgroundColor: Colors.red,
+                );
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.shade200,
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            service,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
-                          );
-                          return;
-                        }
-
-                        if (data?['status'] != 'Assigned') {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Job not ready'),
-                              backgroundColor: Colors.orange,
-                            ),
-                          );
-                          return;
-                        }
-
-                        await FirebaseFirestore.instance
-                            .collection('bookings')
-                            .doc(booking.id)
-                            .update({
-                          'status': 'Completed',
-                          'updated_at': Timestamp.now(),
-                        });
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Job Marked As Completed'),
-                            backgroundColor: Colors.green,
                           ),
-                        );
-                      },
-
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isCancelled || isCompleted
-                            ? Colors.grey
-                            : Colors.green,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
                         ),
-                      ),
-
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusBgColor,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            status,
+                            style: TextStyle(
+                              color: statusTextColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    infoRow(Icons.calendar_month, bookingDate),
+                    const SizedBox(height: 10),
+                    infoRow(Icons.location_on, address),
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerRight,
                       child: Text(
-                        isCancelled
-                            ? 'Job Cancelled'
-                            : isCompleted
-                            ? 'Job Completed'
-                            : 'Mark As Completed',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
+                        'Tap to view details',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green.shade400,
                         ),
                       ),
                     ),
-                  ),
-
-                ],
+                  ],
+                ),
               ),
             );
           },
@@ -249,12 +198,12 @@ class JobsPage extends StatelessWidget {
   Widget infoRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, color: Colors.green, size: 20),
-        const SizedBox(width: 10),
+        Icon(icon, color: Colors.green, size: 18),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(fontSize: 15),
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
           ),
         ),
       ],
