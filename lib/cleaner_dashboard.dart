@@ -1,4 +1,5 @@
 import 'package:cleanova/cleaner_profile_page.dart';
+import 'package:cleanova/cleaner_history_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -481,24 +482,6 @@ class CleanerHomePage extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class CleanerHistoryPage extends StatelessWidget {
-
-  const CleanerHistoryPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'Completed Jobs History',
-        style: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-        ),
       ),
     );
   }
