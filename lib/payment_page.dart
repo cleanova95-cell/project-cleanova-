@@ -5,9 +5,7 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:cleanova/receipt_page.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+import 'package:cleanova/bank_transfer_page.dart';
 
 class PaymentPage extends StatefulWidget {
   final String service;
@@ -35,9 +33,7 @@ class _PaymentPageState extends State<PaymentPage> {
 
   String selectedMethod = 'card';
   bool isProcessing = false;
-  File? _receiptImage;
-  bool _uploadingReceipt = false;
-  // ── Create Payment Intent (Card) ─────────────────────────────
+
   Future<String?> _createPaymentIntent() async {
     try {
       final response = await http.post(
@@ -57,15 +53,12 @@ class _PaymentPageState extends State<PaymentPage> {
         final data = jsonDecode(response.body);
         return data['client_secret'] as String?;
       }
-      debugPrint('Stripe error: ${response.body}');
       return null;
     } catch (e) {
-      debugPrint('CreatePaymentIntent error: $e');
       return null;
     }
   }
 
-  // ── Create Payment Intent (GrabPay) ──────────────────────────
   Future<Map<String, String>?> _createGrabPayIntent() async {
     try {
       final response = await http.post(
@@ -88,15 +81,12 @@ class _PaymentPageState extends State<PaymentPage> {
           'id': data['id'] as String,
         };
       }
-      debugPrint('GrabPay intent error: ${response.body}');
       return null;
     } catch (e) {
-      debugPrint('GrabPay intent error: $e');
       return null;
     }
   }
 
-  // ── Save to Firestore ────────────────────────────────────────
   Future<void> _saveToFirestore({
     required String paymentIntentId,
     required String paymentMethod,
@@ -120,7 +110,6 @@ class _PaymentPageState extends State<PaymentPage> {
     });
   }
 
-  // ── Verify Payment Intent ───────────────────────────────────
   Future<bool> _verifyPaymentIntent(String paymentIntentId) async {
     try {
       final response = await http.get(
@@ -133,12 +122,10 @@ class _PaymentPageState extends State<PaymentPage> {
       }
       return false;
     } catch (e) {
-      debugPrint('Verify error: $e');
       return false;
     }
   }
 
-  // ── Pay with Card ────────────────────────────────────────────
   Future<void> _payWithCard() async {
     setState(() => isProcessing = true);
     try {
@@ -154,16 +141,13 @@ class _PaymentPageState extends State<PaymentPage> {
             colors: PaymentSheetAppearanceColors(
               primary: const Color(0xFF43A047),
             ),
-            shapes: PaymentSheetShape(
-              borderRadius: 16,
-            ),
+            shapes: PaymentSheetShape(borderRadius: 16),
           ),
         ),
       );
 
       await Stripe.instance.presentPaymentSheet();
 
-      // ── Verify payment actually succeeded before saving ──
       final paymentIntentId = clientSecret.split('_secret_')[0];
       final isSucceeded = await _verifyPaymentIntent(paymentIntentId);
 
@@ -194,8 +178,6 @@ class _PaymentPageState extends State<PaymentPage> {
     if (mounted) setState(() => isProcessing = false);
   }
 
-
-  // ── Pay with GrabPay ─────────────────────────────────────────
   Future<void> _payWithGrabPay() async {
     setState(() => isProcessing = true);
     try {
@@ -214,9 +196,7 @@ class _PaymentPageState extends State<PaymentPage> {
             colors: PaymentSheetAppearanceColors(
               primary: const Color(0xFF00B14F),
             ),
-            shapes: PaymentSheetShape(
-              borderRadius: 16,
-            ),
+            shapes: PaymentSheetShape(borderRadius: 16),
           ),
         ),
       );
@@ -241,6 +221,21 @@ class _PaymentPageState extends State<PaymentPage> {
       _showError('Something went wrong. Please try again.');
     }
     if (mounted) setState(() => isProcessing = false);
+  }
+
+  void _goToBankTransfer() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BankTransferPage(
+          service: widget.service,
+          size: widget.size,
+          address: widget.address,
+          bookingDate: widget.bookingDate,
+          totalPrice: widget.totalPrice,
+        ),
+      ),
+    );
   }
 
   void _showError(String message) {
@@ -268,97 +263,6 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  Future<void> _pickReceiptImage() async {
-    final picker = ImagePicker();
-
-    final pickedFile = await picker.pickImage(
-      source: ImageSource.gallery, // or ImageSource.camera
-      imageQuality: 80,
-    );
-
-    if (pickedFile == null) return;
-
-    setState(() {
-      _receiptImage = File(pickedFile.path);
-    });
-
-    _uploadReceipt();
-  }
-  Future<String?> _uploadReceiptToStorage(File image) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-
-      final fileName =
-          'receipts/${user!.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-      final ref = FirebaseStorage.instance.ref().child(fileName);
-
-      await ref.putFile(image);
-
-      return await ref.getDownloadURL();
-    } catch (e) {
-      debugPrint('Upload error: $e');
-      return null;
-    }
-  }
-  Future<void> _saveReceiptPayment(String? imageUrl) async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    await FirebaseFirestore.instance.collection('bookings').add({
-      'userId': user?.uid,
-      'email': user?.email,
-      'service': widget.service,
-      'size': widget.size,
-      'address': widget.address,
-      'bookingDate': Timestamp.fromDate(widget.bookingDate),
-      'price': widget.totalPrice,
-
-      'paymentMethod': 'Bank Transfer',
-      'paymentStatus': 'Pending Verification',
-
-      'receiptImage': imageUrl,
-
-      'status': 'Pending',
-      'created_at': Timestamp.now(),
-      'updated_at': Timestamp.now(),
-    });
-  }
-  Future<void> _uploadReceipt() async {
-    if (_receiptImage == null) return;
-
-    setState(() => _uploadingReceipt = true);
-
-    try {
-      // final url = await _uploadReceiptToStorage(_receiptImage!); //
-      //
-      // // if (url == null) {
-      // //   _showError('Upload failed');
-      // //   return;
-      // // }
-      final url = null;
-      await _saveReceiptPayment(url);
-
-      if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ReceiptPage(
-            service: widget.service,
-            size: widget.size,
-            address: widget.address,
-            bookingDate: widget.bookingDate,
-            totalPrice: widget.totalPrice,
-            paymentMethod: 'Bank Transfer (Receipt Uploaded)',
-          ),
-        ),
-      );
-    } catch (e) {
-      _showError('Receipt upload failed');
-    } finally {
-      if (mounted) setState(() => _uploadingReceipt = false);
-    }
-  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -394,8 +298,6 @@ class _PaymentPageState extends State<PaymentPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            // ── Amount Banner ────────────────────────────────
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
@@ -457,7 +359,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
             const SizedBox(height: 28),
 
-            // ── Payment Method Label ─────────────────────────
             const Text(
               'Select Payment Method',
               style: TextStyle(
@@ -469,7 +370,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
             const SizedBox(height: 14),
 
-            // ── Card Option ──────────────────────────────────
             _PaymentMethodTile(
               value: 'card',
               groupValue: selectedMethod,
@@ -491,7 +391,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
             const SizedBox(height: 12),
 
-            // ── GrabPay Option ───────────────────────────────
             _PaymentMethodTile(
               value: 'grabpay',
               groupValue: selectedMethod,
@@ -518,81 +417,36 @@ class _PaymentPageState extends State<PaymentPage> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
 
-            // ── Upload Receipt Button (UI only) ──────────────
-            GestureDetector(
-              onTap: _pickReceiptImage,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
+            _PaymentMethodTile(
+              value: 'banktransfer',
+              groupValue: selectedMethod,
+              onChanged: (val) => setState(() => selectedMethod = val!),
+              icon: Icons.account_balance_rounded,
+              iconColor: const Color(0xFF6A1B9A),
+              iconBg: const Color(0xFFF3E5F5),
+              title: 'Bank Transfer',
+              subtitle: 'Transfer directly to our bank account',
+              trailing: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFFA5D6A7),
-                    width: 1.5,
-                    style: BorderStyle.solid,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.green.shade100.withOpacity(0.5),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                  color: const Color(0xFF6A1B9A),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.upload_file_rounded,
-                        color: Color(0xFF43A047),
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Upload Payment Receipt',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1B5E20),
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Optional — attach proof of payment',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: Color(0xFF43A047),
-                      size: 16,
-                    ),
-                  ],
+                child: const Text(
+                  'FPX',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
 
             const SizedBox(height: 28),
 
-            // ── Secure Badge ─────────────────────────────────
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -608,7 +462,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
             const SizedBox(height: 20),
 
-            // ── Pay Button ───────────────────────────────────
             SizedBox(
               width: double.infinity,
               height: 58,
@@ -618,8 +471,10 @@ class _PaymentPageState extends State<PaymentPage> {
                     : () {
                   if (selectedMethod == 'card') {
                     _payWithCard();
-                  } else {
+                  } else if (selectedMethod == 'grabpay') {
                     _payWithGrabPay();
+                  } else {
+                    _goToBankTransfer();
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -639,7 +494,7 @@ class _PaymentPageState extends State<PaymentPage> {
                       colors: [
                         Color(0xFF2E7D32),
                         Color(0xFF43A047),
-                        Color(0xFF66BB6A)
+                        Color(0xFF66BB6A),
                       ],
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
@@ -663,13 +518,17 @@ class _PaymentPageState extends State<PaymentPage> {
                         Icon(
                           selectedMethod == 'card'
                               ? Icons.credit_card_rounded
-                              : Icons.account_balance_wallet_rounded,
+                              : selectedMethod == 'grabpay'
+                              ? Icons.account_balance_wallet_rounded
+                              : Icons.account_balance_rounded,
                           color: Colors.white,
                           size: 20,
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          'Pay RM ${widget.totalPrice}',
+                          selectedMethod == 'banktransfer'
+                              ? 'Proceed to Bank Transfer'
+                              : 'Pay RM ${widget.totalPrice}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -692,7 +551,6 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 }
 
-// ── Payment Method Tile ──────────────────────────────────────────
 class _PaymentMethodTile extends StatelessWidget {
   final String value;
   final String groupValue;
@@ -744,7 +602,6 @@ class _PaymentMethodTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Radio
             Container(
               width: 22,
               height: 22,
@@ -769,7 +626,6 @@ class _PaymentMethodTile extends StatelessWidget {
                   : null,
             ),
             const SizedBox(width: 12),
-            // Icon
             Container(
               padding: const EdgeInsets.all(9),
               decoration: BoxDecoration(
@@ -779,7 +635,6 @@ class _PaymentMethodTile extends StatelessWidget {
               child: Icon(icon, color: iconColor, size: 22),
             ),
             const SizedBox(width: 12),
-            // Text
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -789,18 +644,13 @@ class _PaymentMethodTile extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: isSelected
-                          ? const Color(0xFF1B5E20)
-                          : Colors.black87,
+                      color: isSelected ? const Color(0xFF1B5E20) : Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade500,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   ),
                 ],
               ),
@@ -813,9 +663,6 @@ class _PaymentMethodTile extends StatelessWidget {
   }
 }
 
-
-
-// ── Card Badge ───────────────────────────────────────────────────
 class _CardBadge extends StatelessWidget {
   final String text;
   final Color color;

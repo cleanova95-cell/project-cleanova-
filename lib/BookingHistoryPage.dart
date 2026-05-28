@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'booking_detail_page.dart';
+import 'package:cleanova/pending_payment_page.dart';
 
 class BookingHistoryPage extends StatelessWidget {
   const BookingHistoryPage({super.key});
@@ -87,13 +88,16 @@ class BookingHistoryPage extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.cleaning_services, size: 90, color: Colors.grey),
+                        Icon(Icons.cleaning_services,
+                            size: 90, color: Colors.grey),
                         SizedBox(height: 20),
                         Text('No Booking History',
-                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                            style: TextStyle(
+                                fontSize: 24, fontWeight: FontWeight.bold)),
                         SizedBox(height: 10),
                         Text('Your bookings will appear here.',
-                            style: TextStyle(fontSize: 16, color: Colors.grey)),
+                            style:
+                            TextStyle(fontSize: 16, color: Colors.grey)),
                       ],
                     ),
                   );
@@ -107,20 +111,31 @@ class BookingHistoryPage extends StatelessWidget {
                     final data = booking.data() as Map<String, dynamic>;
 
                     final service = data['service'] ?? 'No Service';
-                    final size    = data['size']    ?? '-';
-                    final price   = data['price']   ?? 0;
-                    final status  = (data['status'] ?? 'Pending').toString();
+                    final size = data['size'] ?? '-';
+                    final price = data['price'] ?? 0;
+                    final status = (data['status'] ?? 'Pending').toString();
                     final address = data['address'] ?? '-';
+                    final paymentStatus =
+                    (data['paymentStatus'] ?? '').toString();
 
                     DateTime date = DateTime.now();
                     if (data['bookingDate'] != null) {
                       date = data['bookingDate'].toDate();
                     }
 
+                    // ✅ Tentukan sama ada booking ni pending verification
+                    final bool isPendingVerification =
+                        paymentStatus == 'Pending Verification';
+
                     Color statusColor;
                     switch (status) {
                       case 'Pending':
-                        statusColor = Colors.orange;
+                        statusColor = isPendingVerification
+                            ? const Color(0xFF6A1B9A) // purple - pending verification
+                            : Colors.orange;
+                        break;
+                      case 'Confirmed':
+                        statusColor = Colors.green;
                         break;
                       case 'Cancelled':
                         statusColor = Colors.red;
@@ -141,12 +156,22 @@ class BookingHistoryPage extends StatelessWidget {
                         statusColor = Colors.indigo;
                     }
 
+                    // ✅ Label status yang ditunjuk kat badge
+                    final String displayStatus = isPendingVerification
+                        ? 'Pending Verification'
+                        : status;
+
+                    final Color displayStatusColor = isPendingVerification
+                        ? const Color(0xFF6A1B9A)
+                        : statusColor;
+
                     return GestureDetector(
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => BookingDetailsPage(booking: booking),
+                            builder: (context) =>
+                                BookingDetailsPage(booking: booking),
                           ),
                         );
                       },
@@ -156,9 +181,18 @@ class BookingHistoryPage extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(25),
+                          // ✅ Border highlight untuk pending verification
+                          border: isPendingVerification
+                              ? Border.all(
+                            color: const Color(0xFF6A1B9A).withOpacity(0.4),
+                            width: 1.5,
+                          )
+                              : null,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.grey.shade200,
+                              color: isPendingVerification
+                                  ? const Color(0xFF6A1B9A).withOpacity(0.1)
+                                  : Colors.grey.shade200,
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -181,33 +215,70 @@ class BookingHistoryPage extends StatelessWidget {
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 15,
+                                    horizontal: 12,
                                     vertical: 8,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.15),
+                                    color: displayStatusColor.withOpacity(0.12),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
-                                    status,
+                                    displayStatus,
                                     style: TextStyle(
-                                      color: statusColor,
+                                      color: displayStatusColor,
                                       fontWeight: FontWeight.bold,
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
+
+                            // ✅ Info strip untuk pending verification
+                            if (isPendingVerification) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF3E5F5),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.hourglass_top_rounded,
+                                      color: Color(0xFF6A1B9A),
+                                      size: 14,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Receipt submitted — waiting for admin verification',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.purple.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+
                             const SizedBox(height: 20),
                             bookingInfo(Icons.calendar_month, 'Booking Date',
                                 '${date.day}/${date.month}/${date.year}'),
                             const SizedBox(height: 15),
-                            bookingInfo(Icons.home, 'Property Size', size),
+                            bookingInfo(
+                                Icons.home, 'Property Size', size),
                             const SizedBox(height: 15),
-                            bookingInfo(Icons.attach_money, 'Total Price', 'RM$price'),
+                            bookingInfo(Icons.attach_money, 'Total Price',
+                                'RM$price'),
                             const SizedBox(height: 15),
-                            bookingInfo(Icons.location_on, 'Address', address),
+                            bookingInfo(
+                                Icons.location_on, 'Address', address),
                             const SizedBox(height: 20),
+
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
@@ -219,11 +290,60 @@ class BookingHistoryPage extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                                const Icon(Icons.arrow_forward_ios,
+                                    size: 16, color: Colors.grey),
                               ],
                             ),
+
                             const SizedBox(height: 15),
-                            if (status == 'Pending')
+
+                            // ✅ Button "Check Payment Status" untuk pending verification
+                            if (isPendingVerification)
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => PendingPaymentPage(
+                                          bookingId: booking.id,
+                                          service: service,
+                                          size: size,
+                                          address: address,
+                                          bookingDate: date,
+                                          totalPrice: price is int
+                                              ? price
+                                              : (price as num).toInt(),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.hourglass_top_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                  label: const Text(
+                                    'Check Payment Status',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF6A1B9A),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                            // ✅ Button "Cancel Booking" untuk pending biasa (bukan pending verification)
+                            if (status == 'Pending' && !isPendingVerification)
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
@@ -238,7 +358,8 @@ class BookingHistoryPage extends StatelessWidget {
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.red,
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(15),
                                     ),
@@ -282,9 +403,12 @@ class BookingHistoryPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+              Text(title,
+                  style: const TextStyle(color: Colors.grey, fontSize: 14)),
               const SizedBox(height: 5),
-              Text(value, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              Text(value,
+                  style: const TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
