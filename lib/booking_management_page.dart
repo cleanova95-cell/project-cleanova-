@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cleanova/booking_detail_admin_page.dart';
+import 'package:cleanova/verify_payment_page.dart'; // ← TAMBAH INI SAHAJA
 
 class BookingManagementPage extends StatefulWidget {
   const BookingManagementPage({super.key});
@@ -279,6 +280,7 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
                         ),
                       ),
 
+                      // ← UBAH INI SAHAJA: dari showVerifyPaymentDialog → navigate ke VerifyPaymentPage
                       if (isPendingVerification) ...[
                         const SizedBox(height: 10),
                         SizedBox(
@@ -292,17 +294,22 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
                                 borderRadius: BorderRadius.circular(15),
                               ),
                             ),
-                            onPressed: () => showVerifyPaymentDialog(
+                            onPressed: () => Navigator.push(
                               context,
-                              bookingId: bookingId,
-                              serviceType: serviceType,
-                              propertySize: propertySize,
-                              bookingDate: bookingDate,
-                              address: address,
-                              price: price is int
-                                  ? price
-                                  : (price as num).toInt(),
-                              receiptImage: receiptImage,
+                              MaterialPageRoute(
+                                builder: (_) => VerifyPaymentPage(
+                                  bookingId: bookingId,
+                                  serviceType: serviceType,
+                                  propertySize: propertySize,
+                                  bookingDate: bookingDate,
+                                  address: address,
+                                  price: price is int
+                                      ? price
+                                      : (price as num).toInt(),
+                                  receiptImage: receiptImage,
+                                  customerEmail: customerEmail,
+                                ),
+                              ),
                             ),
                             icon: const Icon(Icons.receipt_long_rounded,
                                 color: Colors.white),
@@ -368,274 +375,6 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
       default:
         return Colors.grey;
     }
-  }
-
-  void showVerifyPaymentDialog(
-      BuildContext context, {
-        required String bookingId,
-        required String serviceType,
-        required String propertySize,
-        required String bookingDate,
-        required String address,
-        required int price,
-        required String? receiptImage,
-      }) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          backgroundColor: Colors.white,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Verify Payment Receipt',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1B5E20),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                receiptImage != null && receiptImage.isNotEmpty
-                    ? ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Image.network(
-                    receiptImage,
-                    width: double.infinity,
-                    height: 200,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return Container(
-                        width: double.infinity,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8F5E9),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                              color: Color(0xFF43A047)),
-                        ),
-                      );
-                    },
-                    errorBuilder: (_, __, ___) => Container(
-                      width: double.infinity,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.broken_image_rounded,
-                            color: Colors.grey, size: 48),
-                      ),
-                    ),
-                  ),
-                )
-                    : Container(
-                  width: double.infinity,
-                  height: 160,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                        color: const Color(0xFFA5D6A7), width: 1.5),
-                  ),
-                  child: const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.image_not_supported_rounded,
-                            color: Colors.grey, size: 40),
-                        SizedBox(height: 8),
-                        Text(
-                          'No receipt image',
-                          style: TextStyle(
-                              color: Colors.grey, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1FFF3),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                        color: const Color(0xFFA5D6A7), width: 1),
-                  ),
-                  child: Column(
-                    children: [
-                      _DialogDetailRow(
-                          label: 'Service', value: serviceType),
-                      const Divider(
-                          height: 16, color: Color(0xFFD4E8D4)),
-                      _DialogDetailRow(
-                          label: 'Size', value: propertySize),
-                      const Divider(
-                          height: 16, color: Color(0xFFD4E8D4)),
-                      _DialogDetailRow(
-                          label: 'Date', value: bookingDate),
-                      const Divider(
-                          height: 16, color: Color(0xFFD4E8D4)),
-                      _DialogDetailRow(
-                          label: 'Address', value: address),
-                      const Divider(
-                          height: 16, color: Color(0xFFD4E8D4)),
-                      _DialogDetailRow(
-                          label: 'Payment', value: 'Bank Transfer'),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total Amount',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        'RM $price',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          Navigator.pop(context);
-                          await FirebaseFirestore.instance
-                              .collection('bookings')
-                              .doc(bookingId)
-                              .update({
-                            'status': 'Rejected',
-                            'paymentStatus': 'Rejected',
-                            'updated_at': Timestamp.now(),
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Payment rejected.'),
-                              backgroundColor: Colors.red,
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red.shade50,
-                          padding:
-                          const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            side: BorderSide(
-                                color: Colors.red.shade200, width: 1.5),
-                          ),
-                          elevation: 0,
-                        ),
-                        icon: Icon(Icons.close_rounded,
-                            color: Colors.red.shade700, size: 18),
-                        label: Text(
-                          'Reject',
-                          style: TextStyle(
-                            color: Colors.red.shade700,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          Navigator.pop(context);
-                          await FirebaseFirestore.instance
-                              .collection('bookings')
-                              .doc(bookingId)
-                              .update({
-                            'status': 'Confirmed',
-                            'paymentStatus': 'Paid',
-                            'updated_at': Timestamp.now(),
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content:
-                              Text('Payment accepted! Booking confirmed.'),
-                              backgroundColor: Color(0xFF43A047),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2E7D32),
-                          padding:
-                          const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 0,
-                        ),
-                        icon: const Icon(Icons.check_rounded,
-                            color: Colors.white, size: 18),
-                        label: const Text(
-                          'Accept',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   void showStatusDialog(

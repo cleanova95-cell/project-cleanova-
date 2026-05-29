@@ -162,24 +162,35 @@ class _BankTransferPageState extends State<BankTransferPage>
   }
 
   Future<String?> _uploadToStorage(File image) async {
-    final user = FirebaseAuth.instance.currentUser;
-    final fileName =
-        'receipts/${user!.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-    final ref = FirebaseStorage.instance.ref().child(fileName);
-    await ref.putFile(image);
-    return await ref.getDownloadURL();
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final fileName =
+          'receipts/${user!.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+      final task = await ref.putFile(image);
+      final url = await task.ref.getDownloadURL();
+      return url;
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<String?> _uploadBytesToStorage(Uint8List bytes) async {
-    final user = FirebaseAuth.instance.currentUser;
-    final fileName =
-        'receipts/${user!.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-    final ref = FirebaseStorage.instance.ref().child(fileName);
-    await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
-    return await ref.getDownloadURL();
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final fileName =
+          'receipts/${user!.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+      final task = await ref.putData(
+          bytes, SettableMetadata(contentType: 'image/jpeg'));
+      final url = await task.ref.getDownloadURL();
+      return url;
+    } catch (e) {
+      return null;
+    }
   }
 
-  Future<String> _saveBooking(String? imageUrl) async {
+  Future<String> _saveBooking(String imageUrl) async {
     final user = FirebaseAuth.instance.currentUser;
     final docRef =
     await FirebaseFirestore.instance.collection('bookings').add({
@@ -217,6 +228,13 @@ class _BankTransferPageState extends State<BankTransferPage>
         imageUrl = await _uploadToStorage(_receiptImage!);
       }
 
+      if (imageUrl == null) {
+        if (!mounted) return;
+        _showSnack('Failed to upload receipt image. Please try again.', isError: true);
+        setState(() => _uploading = false);
+        return;
+      }
+
       final bookingId = await _saveBooking(imageUrl);
 
       if (!mounted) return;
@@ -235,6 +253,7 @@ class _BankTransferPageState extends State<BankTransferPage>
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       _showSnack('Upload failed. Please try again.', isError: true);
     } finally {
       if (mounted) setState(() => _uploading = false);
@@ -270,7 +289,8 @@ class _BankTransferPageState extends State<BankTransferPage>
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         flexibleSpace: Container(
@@ -665,8 +685,8 @@ class _BankTransferPageState extends State<BankTransferPage>
                 child: Text(
                   '⏳ Your booking will be confirmed after admin verifies your receipt',
                   textAlign: TextAlign.center,
-                  style:
-                  TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  style: TextStyle(
+                      fontSize: 12, color: Colors.grey.shade500),
                 ),
               ),
 

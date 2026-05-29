@@ -284,14 +284,24 @@ class BookingDetailsPage extends StatelessWidget {
                   Expanded(
 
                     child: Text(
-
+                      
                       isPending
                           ? 'Your booking is waiting for cleaner confirmation.'
                           : isCancelled
                           ? 'This booking has been cancelled.'
+                          : booking['status'] == 'Confirmed'
+                          ? 'Your payment has been confirmed.'
                           : booking['status'] == 'Assigned'
                           ? 'Cleaner has been assigned to your booking.'
-                          : 'Your cleaning service is completed.',
+                          : booking['status'] == 'On The Way'
+                          ? 'Your cleaner is on the way!'
+                          : booking['status'] == 'Arrived'
+                          ? 'Your cleaner has arrived.'
+                          : booking['status'] == 'In Progress'
+                          ? 'Cleaning is currently in progress.'
+                          : booking['status'] == 'Completed'
+                          ? 'Your cleaning service is completed.'
+                          : 'Booking status updated.',
 
                       style: TextStyle(
                         color: statusColor,
@@ -305,10 +315,6 @@ class BookingDetailsPage extends StatelessWidget {
               ),
             ),
 
-            // =========================
-            // CANCEL BUTTON
-            // ONLY FOR PENDING
-            // =========================
 
             if (isPending) ...[
 

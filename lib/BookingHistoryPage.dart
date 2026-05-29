@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'booking_detail_page.dart';
 import 'package:cleanova/pending_payment_page.dart';
+import 'package:cleanova/receipt_page.dart'; // ← tambah import
 
 class BookingHistoryPage extends StatelessWidget {
   const BookingHistoryPage({super.key});
@@ -93,11 +94,12 @@ class BookingHistoryPage extends StatelessWidget {
                         SizedBox(height: 20),
                         Text('No Booking History',
                             style: TextStyle(
-                                fontSize: 24, fontWeight: FontWeight.bold)),
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold)),
                         SizedBox(height: 10),
                         Text('Your bookings will appear here.',
-                            style:
-                            TextStyle(fontSize: 16, color: Colors.grey)),
+                            style: TextStyle(
+                                fontSize: 16, color: Colors.grey)),
                       ],
                     ),
                   );
@@ -115,6 +117,8 @@ class BookingHistoryPage extends StatelessWidget {
                     final price = data['price'] ?? 0;
                     final status = (data['status'] ?? 'Pending').toString();
                     final address = data['address'] ?? '-';
+                    final paymentMethod =
+                    (data['paymentMethod'] ?? 'Bank Transfer').toString();
                     final paymentStatus =
                     (data['paymentStatus'] ?? '').toString();
 
@@ -123,15 +127,24 @@ class BookingHistoryPage extends StatelessWidget {
                       date = data['bookingDate'].toDate();
                     }
 
-                    // ✅ Tentukan sama ada booking ni pending verification
+                    // ✅ Cek payment statuses
                     final bool isPendingVerification =
                         paymentStatus == 'Pending Verification';
+
+                    // ✅ Cek sama ada booking dah confirmed/paid (boleh tengok receipt)
+                    final bool isPaid = paymentStatus == 'Paid' &&
+                        (status == 'Confirmed' ||
+                            status == 'Assigned' ||
+                            status == 'On The Way' ||
+                            status == 'Arrived' ||
+                            status == 'In Progress' ||
+                            status == 'Completed');
 
                     Color statusColor;
                     switch (status) {
                       case 'Pending':
                         statusColor = isPendingVerification
-                            ? const Color(0xFF6A1B9A) // purple - pending verification
+                            ? const Color(0xFF6A1B9A)
                             : Colors.orange;
                         break;
                       case 'Confirmed':
@@ -152,11 +165,13 @@ class BookingHistoryPage extends StatelessWidget {
                       case 'In Progress':
                         statusColor = Colors.blue.shade800;
                         break;
+                      case 'Completed':
+                        statusColor = Colors.indigo;
+                        break;
                       default:
                         statusColor = Colors.indigo;
                     }
 
-                    // ✅ Label status yang ditunjuk kat badge
                     final String displayStatus = isPendingVerification
                         ? 'Pending Verification'
                         : status;
@@ -181,10 +196,16 @@ class BookingHistoryPage extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(25),
-                          // ✅ Border highlight untuk pending verification
                           border: isPendingVerification
                               ? Border.all(
-                            color: const Color(0xFF6A1B9A).withOpacity(0.4),
+                            color: const Color(0xFF6A1B9A)
+                                .withOpacity(0.4),
+                            width: 1.5,
+                          )
+                              : isPaid
+                              ? Border.all(
+                            color: const Color(0xFF43A047)
+                                .withOpacity(0.4),
                             width: 1.5,
                           )
                               : null,
@@ -202,7 +223,8 @@ class BookingHistoryPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment:
+                              MainAxisAlignment.spaceBetween,
                               children: [
                                 Expanded(
                                   child: Text(
@@ -234,7 +256,7 @@ class BookingHistoryPage extends StatelessWidget {
                               ],
                             ),
 
-                            // ✅ Info strip untuk pending verification
+                            // ✅ Strip untuk pending verification
                             if (isPendingVerification) ...[
                               const SizedBox(height: 10),
                               Container(
@@ -265,12 +287,42 @@ class BookingHistoryPage extends StatelessWidget {
                               ),
                             ],
 
+                            // ✅ Strip untuk paid/confirmed
+                            if (isPaid) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE8F5E9),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle_rounded,
+                                      color: Color(0xFF43A047),
+                                      size: 14,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Payment verified — booking confirmed',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.green.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+
                             const SizedBox(height: 20),
                             bookingInfo(Icons.calendar_month, 'Booking Date',
                                 '${date.day}/${date.month}/${date.year}'),
                             const SizedBox(height: 15),
-                            bookingInfo(
-                                Icons.home, 'Property Size', size),
+                            bookingInfo(Icons.home, 'Property Size', size),
                             const SizedBox(height: 15),
                             bookingInfo(Icons.attach_money, 'Total Price',
                                 'RM$price'),
@@ -297,7 +349,54 @@ class BookingHistoryPage extends StatelessWidget {
 
                             const SizedBox(height: 15),
 
-                            // ✅ Button "Check Payment Status" untuk pending verification
+                            // ✅ View Receipt button untuk booking yang dah paid
+                            if (isPaid)
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ReceiptPage(
+                                          service: service,
+                                          size: size,
+                                          address: address,
+                                          bookingDate: date,
+                                          totalPrice: price is int
+                                              ? price
+                                              : (price as num).toInt(),
+                                          paymentMethod: paymentMethod,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.receipt_long_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                  label: const Text(
+                                    'View Receipt',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                    const Color(0xFF2E7D32),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                      BorderRadius.circular(15),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                            // ✅ Check Payment Status button untuk pending verification
                             if (isPendingVerification)
                               SizedBox(
                                 width: double.infinity,
@@ -332,18 +431,21 @@ class BookingHistoryPage extends StatelessWidget {
                                     ),
                                   ),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF6A1B9A),
+                                    backgroundColor:
+                                    const Color(0xFF6A1B9A),
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 14),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(15),
+                                      borderRadius:
+                                      BorderRadius.circular(15),
                                     ),
                                   ),
                                 ),
                               ),
 
-                            // ✅ Button "Cancel Booking" untuk pending biasa (bukan pending verification)
-                            if (status == 'Pending' && !isPendingVerification)
+                            // ✅ Cancel button untuk pending biasa
+                            if (status == 'Pending' &&
+                                !isPendingVerification)
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
@@ -361,7 +463,8 @@ class BookingHistoryPage extends StatelessWidget {
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 14),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(15),
+                                      borderRadius:
+                                      BorderRadius.circular(15),
                                     ),
                                   ),
                                   child: const Text(
@@ -404,7 +507,8 @@ class BookingHistoryPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title,
-                  style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                  style:
+                  const TextStyle(color: Colors.grey, fontSize: 14)),
               const SizedBox(height: 5),
               Text(value,
                   style: const TextStyle(

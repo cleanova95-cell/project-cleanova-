@@ -57,14 +57,16 @@ class _PendingPaymentPageState extends State<PendingPaymentPage>
       duration: const Duration(milliseconds: 700),
     )..forward();
 
-    _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
+    _fadeAnim =
+        CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
 
     _dotController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat();
 
-    _dotAnim = CurvedAnimation(parent: _dotController, curve: Curves.linear);
+    _dotAnim =
+        CurvedAnimation(parent: _dotController, curve: Curves.linear);
 
     _listenToBooking();
   }
@@ -86,7 +88,8 @@ class _PendingPaymentPageState extends State<PendingPaymentPage>
         .listen((snapshot) {
       if (!snapshot.exists || _navigating) return;
 
-      final status = snapshot.data()?['status'] as String? ?? 'Pending';
+      final status =
+          snapshot.data()?['status'] as String? ?? 'Pending';
 
       if (!mounted) return;
 
@@ -130,7 +133,8 @@ class _PendingPaymentPageState extends State<PendingPaymentPage>
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         backgroundColor: Colors.white,
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -219,11 +223,20 @@ class _PendingPaymentPageState extends State<PendingPaymentPage>
       appBar: AppBar(
         elevation: 0,
         centerTitle: true,
-        automaticallyImplyLeading: false,
+        // ✅ Back arrow yang navigate ke CustomerDashboard
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.white, size: 20),
+          onPressed: _goToHome,
+        ),
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF2E7D32), Color(0xFF43A047), Color(0xFF66BB6A)],
+              colors: [
+                Color(0xFF2E7D32),
+                Color(0xFF43A047),
+                Color(0xFF66BB6A)
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -237,22 +250,6 @@ class _PendingPaymentPageState extends State<PendingPaymentPage>
             fontSize: 20,
           ),
         ),
-        // ✅ Back to Home button kat top right
-        actions: [
-          if (isPending)
-            TextButton.icon(
-              onPressed: _goToHome,
-              icon: const Icon(Icons.home_rounded, color: Colors.white, size: 18),
-              label: const Text(
-                'Home',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-        ],
       ),
       body: FadeTransition(
         opacity: _fadeAnim,
@@ -293,14 +290,18 @@ class _PendingPaymentPageState extends State<PendingPaymentPage>
                   height: 120,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFFFFF8E1), Color(0xFFFFF3CD)],
+                      colors: [
+                        Color(0xFFFFF8E1),
+                        Color(0xFFFFF3CD)
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFF9A825).withOpacity(0.25),
+                        color: const Color(0xFFF9A825)
+                            .withOpacity(0.25),
                         blurRadius: 24,
                         spreadRadius: 4,
                       ),
@@ -360,7 +361,8 @@ class _PendingPaymentPageState extends State<PendingPaymentPage>
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFA5D6A7), width: 1.5),
+                  border: Border.all(
+                      color: const Color(0xFFA5D6A7), width: 1.5),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.green.shade100.withOpacity(0.5),
@@ -413,8 +415,8 @@ class _PendingPaymentPageState extends State<PendingPaymentPage>
               const SizedBox(height: 20),
 
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
                   color: isConfirmed
                       ? const Color(0xFFE8F5E9)
@@ -469,7 +471,8 @@ class _PendingPaymentPageState extends State<PendingPaymentPage>
 
               const SizedBox(height: 20),
 
-              if (isPending) ...[
+              // ✅ Hanya tunjuk info strip, BUANG button Back to Home bawah
+              if (isPending)
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -487,7 +490,7 @@ class _PendingPaymentPageState extends State<PendingPaymentPage>
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'This page will update automatically once admin verifies your payment. You can also go home and check status in Booking History.',
+                          'This page will update automatically once admin verifies your payment. You can go back and check status in Booking History.',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade600,
@@ -498,40 +501,6 @@ class _PendingPaymentPageState extends State<PendingPaymentPage>
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 16),
-
-                // ✅ Back to Home button bawah
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: OutlinedButton.icon(
-                    onPressed: _goToHome,
-                    icon: const Icon(
-                      Icons.home_rounded,
-                      color: Color(0xFF43A047),
-                      size: 20,
-                    ),
-                    label: const Text(
-                      'Back to Home',
-                      style: TextStyle(
-                        color: Color(0xFF43A047),
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                        color: Color(0xFF43A047),
-                        width: 2,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
 
               if (isRejected) ...[
                 const SizedBox(height: 8),
@@ -588,7 +557,8 @@ class _ConfirmedIconState extends State<_ConfirmedIcon>
       vsync: this,
       duration: const Duration(milliseconds: 500),
     )..forward();
-    _scaleAnim = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
+    _scaleAnim =
+        CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
   }
 
   @override
@@ -619,7 +589,8 @@ class _ConfirmedIconState extends State<_ConfirmedIcon>
             ),
           ],
         ),
-        child: const Icon(Icons.check_rounded, color: Colors.white, size: 56),
+        child: const Icon(Icons.check_rounded,
+            color: Colors.white, size: 56),
       ),
     );
   }
@@ -639,7 +610,8 @@ class _DotLoader extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(3, (i) {
             final delay = i / 3;
-            final value = ((animation.value - delay) % 1.0).clamp(0.0, 1.0);
+            final value =
+            ((animation.value - delay) % 1.0).clamp(0.0, 1.0);
             final opacity =
             (value < 0.5 ? value * 2 : (1 - value) * 2).clamp(0.2, 1.0);
             return Padding(
@@ -709,7 +681,8 @@ class _SummaryRow extends StatelessWidget {
                 value,
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: bold ? FontWeight.bold : FontWeight.w600,
+                  fontWeight:
+                  bold ? FontWeight.bold : FontWeight.w600,
                   color: valueColor ?? const Color(0xFF1B5E20),
                 ),
               ),
