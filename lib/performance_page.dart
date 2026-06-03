@@ -1,97 +1,106 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cleanova/performance_page.dart';
 
 class CleanerPerformancePage extends StatelessWidget {
   const CleanerPerformancePage({super.key});
 
-  Future<List<Map<String, dynamic>>> fetchCleanerStats() async {
+  Future<Map<String, int>> getCompletedJobsPerCleaner() async {
     final snapshot = await FirebaseFirestore.instance
         .collection('bookings')
         .where('status', isEqualTo: 'Completed')
         .get();
 
-    Map<String, Map<String, dynamic>> stats = {};
+    Map<String, int> result = {};
 
     for (var doc in snapshot.docs) {
       final data = doc.data();
+      final cleanerName = data['cleanerName'] ?? 'Unassigned';
 
-      final cleanerId = data['cleanerId'] ?? 'unknown';
-      final cleanerName = data['cleanerName'] ?? 'Unknown';
-
-      if (!stats.containsKey(cleanerId)) {
-        stats[cleanerId] = {
-          'name': cleanerName,
-          'count': 0,
-        };
+      if (cleanerName != 'Unassigned') {
+        result[cleanerName] = (result[cleanerName] ?? 0) + 1;
       }
-
-      stats[cleanerId]!['count'] =
-          (stats[cleanerId]!['count'] as int) + 1;
     }
 
-    return stats.entries
-        .map((e) => {
-      'cleanerId': e.key,
-      'name': e.value['name'],
-      'count': e.value['count'],
-    })
-        .toList();
+    return result;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF1FFF3),
       appBar: AppBar(
-        title: const Text("Cleaner Performance"),
-        backgroundColor: const Color(0xFF2E7D32),
+        title: const Text(
+          "Cleaner Performance",
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF43A047),
       ),
-      body: FutureBuilder(
-        future: fetchCleanerStats(),
+      body: FutureBuilder<Map<String, int>>(
+        future: getCompletedJobsPerCleaner(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final data = snapshot.data as List;
+          final data = snapshot.data!;
 
           if (data.isEmpty) {
             return const Center(
-              child: Text("No completed jobs yet"),
+              child: Text(
+                "No completed jobs yet",
+                style: TextStyle(fontSize: 16),
+              ),
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: data.length,
-            itemBuilder: (context, index) {
-              final cleaner = data[index];
-
-              return Card(
-                child: ListTile(
-                  leading: const Icon(
-                    Icons.cleaning_services,
-                    color: Color(0xFF2E7D32),
-                  ),
-                  title: Text(cleaner['name']),
-                  subtitle: Text("ID: ${cleaner['cleanerId']}"),
-                  trailing: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      "${cleaner['count']} jobs",
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: data.entries.map((entry) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 15),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.shade200,
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      entry.key,
                       style: const TextStyle(
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green,
                       ),
                     ),
-                  ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2E7D32).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        "${entry.value} jobs",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2E7D32),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               );
-            },
+            }).toList(),
           );
         },
       ),
