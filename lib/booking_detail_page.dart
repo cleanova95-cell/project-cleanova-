@@ -284,7 +284,7 @@ class BookingDetailsPage extends StatelessWidget {
                   Expanded(
 
                     child: Text(
-                      
+
                       isPending
                           ? 'Your booking is waiting for cleaner confirmation.'
                           : isCancelled
