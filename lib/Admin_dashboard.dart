@@ -7,6 +7,7 @@ import 'booking_management_page.dart';
 import 'admin_profile_page.dart';
 import 'pricing_management_page.dart';
 import 'user_page.dart';
+import 'performance_page.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -577,6 +578,44 @@ class AdminHomePage
                         completedCount
                             .toString(),
                         Icons.check_circle,
+                      ),
+
+                      const SizedBox(height: 25),
+
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF6A1B9A), Color(0xFF8E24AA)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                          ),
+                          icon: const Icon(Icons.bar_chart, color: Colors.white),
+                          label: const Text(
+                            "Cleaner Performance",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CleanerPerformancePage(),
+                              ),
+                            );
+                          },
+                        ),
                       ),
 
                     ],
