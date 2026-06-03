@@ -1,49 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cleanova/performance_page.dart';
 
-class CleanerPerformancePage extends StatefulWidget {
+class CleanerPerformancePage extends StatelessWidget {
   const CleanerPerformancePage({super.key});
 
-  @override
-  State<CleanerPerformancePage> createState() =>
-      _CleanerPerformancePageState();
-}
-
-class _CleanerPerformancePageState
-    extends State<CleanerPerformancePage> {
-
-  Future<List<Map<String, dynamic>>> getCleanerPerformance() async {
-
-    QuerySnapshot jobsSnapshot = await FirebaseFirestore.instance
-        .collection('jobs')
-        .where('status', isEqualTo: 'completed')
+  Future<List<Map<String, dynamic>>> fetchCleanerStats() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('bookings')
+        .where('status', isEqualTo: 'Completed')
         .get();
 
-    Map<String, Map<String, dynamic>> cleanerStats = {};
+    Map<String, Map<String, dynamic>> stats = {};
 
-    for (var doc in jobsSnapshot.docs) {
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
 
-      String cleanerId = doc['cleanerId'];
-      String cleanerName = doc['cleanerName'];
+      final cleanerId = data['cleanerId'] ?? 'unknown';
+      final cleanerName = data['cleanerName'] ?? 'Unknown';
 
-      if (!cleanerStats.containsKey(cleanerId)) {
-        cleanerStats[cleanerId] = {
+      if (!stats.containsKey(cleanerId)) {
+        stats[cleanerId] = {
           'name': cleanerName,
           'count': 0,
         };
       }
 
-      cleanerStats[cleanerId]!['count']++;
+      stats[cleanerId]!['count'] =
+          (stats[cleanerId]!['count'] as int) + 1;
     }
 
-    List<Map<String, dynamic>> results =
-    cleanerStats.values.toList();
-
-    results.sort(
-          (a, b) => b['count'].compareTo(a['count']),
-    );
-
-    return results;
+    return stats.entries
+        .map((e) => {
+      'cleanerId': e.key,
+      'name': e.value['name'],
+      'count': e.value['count'],
+    })
+        .toList();
   }
 
   @override
@@ -51,50 +44,49 @@ class _CleanerPerformancePageState
     return Scaffold(
       appBar: AppBar(
         title: const Text("Cleaner Performance"),
+        backgroundColor: const Color(0xFF2E7D32),
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: getCleanerPerformance(),
+      body: FutureBuilder(
+        future: fetchCleanerStats(),
         builder: (context, snapshot) {
-
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
           }
 
-          if (!snapshot.hasData ||
-              snapshot.data!.isEmpty) {
+          final data = snapshot.data as List;
+
+          if (data.isEmpty) {
             return const Center(
-              child: Text("No completed jobs found"),
+              child: Text("No completed jobs yet"),
             );
           }
-
-          final cleaners = snapshot.data!;
 
           return ListView.builder(
-            itemCount: cleaners.length,
+            padding: const EdgeInsets.all(16),
+            itemCount: data.length,
             itemBuilder: (context, index) {
-
-              final cleaner = cleaners[index];
+              final cleaner = data[index];
 
               return Card(
-                margin: const EdgeInsets.all(8),
                 child: ListTile(
-                  leading: CircleAvatar(
-                    child: Text(
-                      "${index + 1}",
-                    ),
+                  leading: const Icon(
+                    Icons.cleaning_services,
+                    color: Color(0xFF2E7D32),
                   ),
                   title: Text(cleaner['name']),
-                  subtitle: const Text(
-                    "Completed Jobs",
-                  ),
-                  trailing: Text(
-                    cleaner['count'].toString(),
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  subtitle: Text("ID: ${cleaner['cleanerId']}"),
+                  trailing: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      "${cleaner['count']} jobs",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
                     ),
                   ),
                 ),
