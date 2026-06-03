@@ -55,7 +55,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
     return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
 
-  // ── Admin: verify or reject proof ────────────────────────────
   Future<void> _verifyJob(BuildContext context) async {
     final bool? confirmed = await showDialog<bool>(
       context: context,
@@ -167,7 +166,7 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
           .collection('bookings')
           .doc(widget.bookingId)
           .update({
-        'status': 'In Progress', // send back so cleaner can re-submit
+        'status': 'In Progress',
         'proofImageUrl': FieldValue.delete(),
         'proofUploadedAt': FieldValue.delete(),
         'proofRejectedAt': Timestamp.now(),
@@ -188,7 +187,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
     }
   }
 
-  // ── Full-screen photo viewer ──────────────────────────────────
   void _openPhotoViewer(BuildContext context, String url) {
     Navigator.push(
       context,
@@ -249,7 +247,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
         ),
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        // Use StreamBuilder so the page auto-updates when admin verifies
         stream: FirebaseFirestore.instance
             .collection('bookings')
             .doc(widget.bookingId)
@@ -283,7 +280,19 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
           final payMethod = data['paymentMethod'] ?? '-';
           final price = data['price'] ?? 0;
           final payStatus = data['paymentStatus'] ?? '-';
-          final payIntentId = data['paymentIntentId'] ?? '-';
+
+          // ── REPAIR: Bank Transfer payIntentId & paidAt ──
+          final payIntentId = data['paymentIntentId'] ??
+              (payMethod == 'Bank Transfer'
+                  ? 'BT-${(data['created_at'] as Timestamp?)?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch}'
+                  : '-');
+
+          final paidAt = data['paidAt'] != null
+              ? _formatTimestamp(data['paidAt'] as Timestamp?)
+              : (payMethod == 'Bank Transfer'
+              ? _formatTimestamp(data['created_at'] as Timestamp?)
+              : '-');
+          // ────────────────────────────────────────────────
 
           final String? proofImageUrl = data['proofImageUrl'] as String?;
           final String? proofRejectionReason =
@@ -293,8 +302,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
 
           final bookingDate =
           _formatDate(data['bookingDate'] as Timestamp?);
-          final paidAt =
-          _formatTimestamp(data['paidAt'] as Timestamp?);
           final createdAt =
           _formatTimestamp(data['created_at'] as Timestamp?);
           final verifiedAt =
@@ -309,7 +316,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // ── Header banner ──────────────────────────
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
@@ -383,7 +389,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
 
                     const SizedBox(height: 14),
 
-                    // ── PROOF OF CLEANING section ──────────────
                     if (proofImageUrl != null) ...[
                       Container(
                         width: double.infinity,
@@ -408,7 +413,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Section header
                               Row(
                                 children: [
                                   Container(
@@ -479,7 +483,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
 
                               const SizedBox(height: 14),
 
-                              // Proof photo — tappable for fullscreen
                               GestureDetector(
                                 onTap: () =>
                                     _openPhotoViewer(context, proofImageUrl),
@@ -545,9 +548,7 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
                                 ),
                               ),
 
-                              // Verified at timestamp
-                              if (isCompleted &&
-                                  verifiedAt != '-') ...[
+                              if (isCompleted && verifiedAt != '-') ...[
                                 const SizedBox(height: 10),
                                 Row(
                                   children: [
@@ -565,12 +566,10 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
                                 ),
                               ],
 
-                              // ── Verify / Reject buttons ──────
                               if (isPendingVerification) ...[
                                 const SizedBox(height: 16),
                                 Row(
                                   children: [
-                                    // Reject button
                                     Expanded(
                                       child: OutlinedButton.icon(
                                         onPressed: _isProcessing
@@ -599,7 +598,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
                                       ),
                                     ),
                                     const SizedBox(width: 12),
-                                    // Verify button
                                     Expanded(
                                       child: ElevatedButton.icon(
                                         onPressed: _isProcessing
@@ -647,7 +645,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
                       const SizedBox(height: 12),
                     ],
 
-                    // ── No proof yet (e.g. still in progress) ──
                     if (proofImageUrl == null &&
                         (status == 'In Progress' ||
                             status == 'Arrived' ||
@@ -706,7 +703,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
                       const SizedBox(height: 12),
                     ],
 
-                    // ── Booking Info ───────────────────────────
                     _InfoCard(
                       icon: Icons.calendar_month_outlined,
                       title: 'Booking info',
@@ -720,7 +716,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
 
                     const SizedBox(height: 12),
 
-                    // ── Customer Info ──────────────────────────
                     _InfoCard(
                       icon: Icons.person_outline_rounded,
                       title: 'Customer info',
@@ -732,7 +727,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
 
                     const SizedBox(height: 12),
 
-                    // ── Cleaner Info ───────────────────────────
                     _InfoCard(
                       icon: Icons.cleaning_services_outlined,
                       title: 'Cleaner info',
@@ -756,7 +750,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
 
                     const SizedBox(height: 12),
 
-                    // ── Payment Info ───────────────────────────
                     _InfoCard(
                       icon: Icons.credit_card_outlined,
                       title: 'Payment info',
@@ -780,7 +773,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
                 ),
               ),
 
-              // Processing overlay
               if (_isProcessing)
                 Container(
                   color: Colors.black.withOpacity(0.3),
@@ -797,7 +789,6 @@ class _BookingDetailAdminPageState extends State<BookingDetailAdminPage> {
   }
 }
 
-// ── Info Card ─────────────────────────────────────────────────────
 class _InfoCard extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -860,7 +851,6 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
-// ── Info Row ──────────────────────────────────────────────────────
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
