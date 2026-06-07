@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'verify_email_page.dart';
 
 class RegisterCustomerPage extends StatefulWidget {
   const RegisterCustomerPage({super.key});
@@ -18,6 +19,7 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -82,6 +84,8 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
       return;
     }
 
+    setState(() => _isLoading = true);
+
     try {
       UserCredential userCredential =
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -103,13 +107,18 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
         'updated_at': Timestamp.now(),
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account created successfully'),
-        ),
-      );
+      await userCredential.user?.sendEmailVerification();
 
-      Navigator.pop(context);
+      if (mounted) {
+        // ✅ REPAIR: pushAndRemoveUntil untuk clear semua stack
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VerifyEmailPage(email: email),
+          ),
+              (route) => false,
+        );
+      }
 
     } on FirebaseAuthException catch (e) {
 
@@ -117,10 +126,14 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
 
       if (e.code == 'email-already-in-use') {
         message = 'Email already registered';
+      } else if (e.code == 'weak-password') {
+        message = 'Password too weak';
       }
 
       _showErrorSnackbar(message);
     }
+
+    if (mounted) setState(() => _isLoading = false);
   }
 
   InputDecoration _fieldDecoration({
@@ -137,9 +150,7 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
       suffixIcon: suffixIcon,
       filled: true,
       fillColor: const Color(0xFFF2F2F2),
-      labelStyle: const TextStyle(
-        color: Colors.grey,
-      ),
+      labelStyle: const TextStyle(color: Colors.grey),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(30),
         borderSide: BorderSide.none,
@@ -162,7 +173,6 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_new,
@@ -176,7 +186,6 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 32),
-
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -250,7 +259,6 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                   decoration: _fieldDecoration(
                     label: 'Password',
                     prefixIcon: Icons.lock_outline,
-
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
@@ -258,7 +266,6 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                             : Icons.visibility,
                         color: Colors.grey,
                       ),
-
                       onPressed: () {
                         setState(() {
                           _obscurePassword = !_obscurePassword;
@@ -273,11 +280,9 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                 TextField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
-
                   decoration: _fieldDecoration(
                     label: 'Confirm Password',
                     prefixIcon: Icons.lock_outline,
-
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirmPassword
@@ -285,7 +290,6 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                             : Icons.visibility,
                         color: Colors.grey,
                       ),
-
                       onPressed: () {
                         setState(() {
                           _obscureConfirmPassword =
@@ -300,7 +304,6 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
 
                 SizedBox(
                   height: 50,
-
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
@@ -309,28 +312,30 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                           Color(0xFFA8E063),
                         ],
                       ),
-
                       borderRadius: BorderRadius.circular(30),
                     ),
-
                     child: ElevatedButton(
-                      onPressed: _register,
-
+                      onPressed: _isLoading ? null : _register,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
                         foregroundColor: Colors.white,
-
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
-
-                      child: const Text(
-                        'Create Account',
-                        style: TextStyle(
-                          fontSize: 16,
+                      child: _isLoading
+                          ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
                         ),
+                      )
+                          : const Text(
+                        'Create Account',
+                        style: TextStyle(fontSize: 16),
                       ),
                     ),
                   ),
@@ -341,17 +346,12 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-
-                    const Text(
-                      'Already have an account? ',
-                    ),
-
+                    const Text('Already have an account? '),
                     GestureDetector(
                       onTap: () => Navigator.popUntil(
                         context,
                             (route) => route.isFirst,
                       ),
-
                       child: const Text(
                         'Login',
                         style: TextStyle(
@@ -360,7 +360,6 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
                         ),
                       ),
                     ),
-
                   ],
                 ),
 
