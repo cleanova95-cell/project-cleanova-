@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cleanova/notification_service.dart';
 import 'verify_email_page.dart';
 
 class RegisterCustomerPage extends StatefulWidget {
@@ -105,7 +106,11 @@ class _RegisterCustomerPageState extends State<RegisterCustomerPage> {
         'role': 'customer',
         'created_at': Timestamp.now(),
         'updated_at': Timestamp.now(),
+        'fcmToken': '',   // placeholder — filled in by saveTokenToFirestore()
       });
+
+      // Save the device FCM token so we can send push notifications
+      await NotificationService.saveTokenToFirestore();
 
       await userCredential.user?.sendEmailVerification();
 

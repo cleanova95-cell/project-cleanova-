@@ -1,3 +1,4 @@
+import 'package:cleanova/notification_service.dart';
 import 'package:cleanova/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,8 +15,11 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  await NotificationService.init();
+
   if (!kIsWeb) {
-    Stripe.publishableKey = 'pk_test_51TYse0ILpdbUz8ZmSPMwbLVjNKI29neVGBvrytzWGhjEoAxSSlXeVHNetEn7I3hpbZFYbN12B5r9BGPkeAp1NiFP00YTHvVGZM';
+    Stripe.publishableKey =
+    'pk_test_51TYse0ILpdbUz8ZmSPMwbLVjNKI29neVGBvrytzWGhjEoAxSSlXeVHNetEn7I3hpbZFYbN12B5r9BGPkeAp1NiFP00YTHvVGZM';
     await Stripe.instance.applySettings();
   }
 

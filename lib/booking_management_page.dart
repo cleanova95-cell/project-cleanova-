@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cleanova/booking_detail_admin_page.dart';
-import 'package:cleanova/verify_payment_page.dart'; // ← TAMBAH INI SAHAJA
+import 'package:cleanova/verify_payment_page.dart';
 
 class BookingManagementPage extends StatefulWidget {
   const BookingManagementPage({super.key});
@@ -12,6 +12,71 @@ class BookingManagementPage extends StatefulWidget {
 
 class _BookingManagementPageState extends State<BookingManagementPage> {
   final Color primaryGreen = const Color(0xFF2E7D32);
+
+  // ─────────────────────────────────────────────
+  // #81 – Write a notification document so the
+  //        customer can see it in their inbox.
+  // ─────────────────────────────────────────────
+  Future<void> _sendStatusNotification({
+    required String bookingId,
+    required String newStatus,
+    required String customerEmail,
+  }) async {
+    final bookingDoc = await FirebaseFirestore.instance
+        .collection('bookings')
+        .doc(bookingId)
+        .get();
+
+    final data = bookingDoc.data();
+    if (data == null) return;
+
+    final String userId = data['userId'] ?? '';
+    if (userId.isEmpty) return;
+
+    // Get the customer's FCM token from users collection
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .get();
+
+    final String fcmToken = userDoc.data()?['fcmToken'] ?? '';
+
+    final String message = _notificationMessage(newStatus);
+
+    // Write to notifications collection (for in-app bell icon)
+    // AND include fcmToken so the Cloud Function can send the push
+    await FirebaseFirestore.instance.collection('notifications').add({
+      'userId': userId,
+      'bookingId': bookingId,
+      'title': 'Booking Status Updated',
+      'message': message,
+      'status': newStatus,
+      'isRead': false,
+      'fcmToken': fcmToken,   // Cloud Function reads this to send push
+      'createdAt': Timestamp.now(),
+    });
+  }
+
+  String _notificationMessage(String status) {
+    switch (status) {
+      case 'Confirmed':
+        return 'Your booking has been confirmed by the admin.';
+      case 'Assigned':
+        return 'A cleaner has been assigned to your booking.';
+      case 'On The Way':
+        return 'Your cleaner is on the way to your location!';
+      case 'Arrived':
+        return 'Your cleaner has arrived at your location.';
+      case 'In Progress':
+        return 'Cleaning is currently in progress at your place.';
+      case 'Completed':
+        return 'Your cleaning service has been completed. Thank you!';
+      case 'Cancelled':
+        return 'Your booking has been cancelled.';
+      default:
+        return 'Your booking status has been updated to $status.';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -203,10 +268,11 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
                                   borderRadius: BorderRadius.circular(15),
                                 ),
                               ),
+                              // #79 — pass customerEmail so notification can be sent
                               onPressed: isFrozen
                                   ? null
                                   : () => showStatusDialog(
-                                  context, bookingId, status),
+                                  context, bookingId, status, customerEmail),
                               icon: const Icon(Icons.update,
                                   color: Colors.white),
                               label: const Text(
@@ -231,7 +297,7 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
                               onPressed: isAssignDisabled
                                   ? null
                                   : () => showAssignCleanerDialog(
-                                  context, bookingId),
+                                  context, bookingId, customerEmail),
                               icon: const Icon(Icons.person_add,
                                   color: Colors.white),
                               label: const Text(
@@ -255,8 +321,8 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(15),
-                              side: BorderSide(
-                                  color: primaryGreen, width: 1.5),
+                              side:
+                              BorderSide(color: primaryGreen, width: 1.5),
                             ),
                             elevation: 0,
                           ),
@@ -280,7 +346,6 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
                         ),
                       ),
 
-                      // ← UBAH INI SAHAJA: dari showVerifyPaymentDialog → navigate ke VerifyPaymentPage
                       if (isPendingVerification) ...[
                         const SizedBox(height: 10),
                         SizedBox(
@@ -377,12 +442,31 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
     }
   }
 
+  // ─────────────────────────────────────────────────────────
+  // #79 — Full status list including In Progress & Completed
+  // #80 — Saves new status to Firestore
+  // #81 — Triggers notification after saving
+  // ─────────────────────────────────────────────────────────
   void showStatusDialog(
-      BuildContext context, String bookingId, String currentStatus) {
+      BuildContext context,
+      String bookingId,
+      String currentStatus,
+      String customerEmail,
+      ) {
+    // All possible statuses admin can set
     List<String> statusOptions;
 
     if (currentStatus == 'Confirmed') {
       statusOptions = ['Pending', 'Cancelled'];
+    } else if (currentStatus == 'Assigned') {
+      statusOptions = ['On The Way', 'Cancelled'];
+    } else if (currentStatus == 'On The Way') {
+      statusOptions = ['Arrived', 'Cancelled'];
+    } else if (currentStatus == 'Arrived') {
+      statusOptions = ['In Progress', 'Cancelled'];
+    } else if (currentStatus == 'In Progress') {
+      // #79 — In Progress → Completed is now properly available
+      statusOptions = ['Completed', 'Cancelled'];
     } else {
       statusOptions = ['Pending', 'Completed', 'Cancelled'];
     }
@@ -425,8 +509,7 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
                       child: Text(
                         status,
                         style: TextStyle(
-                          color:
-                          isSelected ? Colors.white : Colors.black87,
+                          color: isSelected ? Colors.white : Colors.black87,
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                         ),
@@ -446,19 +529,7 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
               style:
               ElevatedButton.styleFrom(backgroundColor: primaryGreen),
               onPressed: () async {
-                if (selectedStatus == 'Completed' &&
-                    currentStatus != 'Assigned') {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                          'Cannot complete. Please assign a cleaner first!'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
-
+                // #80 — Update booking status in Firestore database
                 await FirebaseFirestore.instance
                     .collection('bookings')
                     .doc(bookingId)
@@ -467,11 +538,17 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
                   'updated_at': Timestamp.now(),
                 });
 
+                // #81 — Trigger notification to customer
+                await _sendStatusNotification(
+                  bookingId: bookingId,
+                  newStatus: selectedStatus,
+                  customerEmail: customerEmail,
+                );
+
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content:
-                    Text('Booking updated to $selectedStatus'),
+                    content: Text('Booking updated to $selectedStatus'),
                     backgroundColor: primaryGreen,
                   ),
                 );
@@ -485,7 +562,11 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
     );
   }
 
-  void showAssignCleanerDialog(BuildContext context, String bookingId) {
+  void showAssignCleanerDialog(
+      BuildContext context,
+      String bookingId,
+      String customerEmail,
+      ) {
     String selectedCleanerId = '';
     String selectedCleanerName = '';
     String selectedCleanerEmail = '';
@@ -542,6 +623,7 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
               onPressed: () async {
                 if (selectedCleanerId.isEmpty) return;
 
+                // #80 — Update Firestore with assigned cleaner + status
                 await FirebaseFirestore.instance
                     .collection('bookings')
                     .doc(bookingId)
@@ -552,6 +634,13 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
                   'status': 'Assigned',
                   'updated_at': Timestamp.now(),
                 });
+
+                // #81 — Notify customer that cleaner was assigned
+                await _sendStatusNotification(
+                  bookingId: bookingId,
+                  newStatus: 'Assigned',
+                  customerEmail: customerEmail,
+                );
 
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(

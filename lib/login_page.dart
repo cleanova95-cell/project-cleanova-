@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cleanova/notification_service.dart';
 import 'register_selection_page.dart';
 import 'customer_dashboard.dart';
 import 'cleaner_dashboard.dart';
@@ -84,6 +85,8 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (role == 'customer') {
+        // Save/refresh FCM token every time the customer logs in
+        await NotificationService.saveTokenToFirestore();
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const CustomerDashboard()));
       } else if (role == 'cleaner') {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const CleanerDashboard()));
