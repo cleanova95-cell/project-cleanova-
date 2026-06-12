@@ -57,6 +57,44 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
     });
   }
 
+  // ─────────────────────────────────────────────
+  // Notify cleaner when they are assigned a job
+  // ─────────────────────────────────────────────
+  Future<void> _sendCleanerNotification({
+    required String bookingId,
+    required String cleanerId,
+  }) async {
+    final bookingDoc = await FirebaseFirestore.instance
+        .collection('bookings')
+        .doc(bookingId)
+        .get();
+
+    final data = bookingDoc.data();
+    if (data == null) return;
+
+    // Get cleaner's FCM token
+    final cleanerDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(cleanerId)
+        .get();
+
+    final String fcmToken = cleanerDoc.data()?['fcmToken'] ?? '';
+
+    final String date    = data['date']    ?? '';
+    final String address = data['address'] ?? '';
+
+    await FirebaseFirestore.instance.collection('notifications').add({
+      'userId':    cleanerId,
+      'bookingId': bookingId,
+      'title':     'New Job Assigned',
+      'message':   'You have been assigned a new cleaning job on $date at $address.',
+      'status':    'Assigned',
+      'fcmToken':  fcmToken,
+      'isRead':    false,
+      'createdAt': Timestamp.now(),
+    });
+  }
+
   String _notificationMessage(String status) {
     switch (status) {
       case 'Confirmed':
@@ -640,6 +678,12 @@ class _BookingManagementPageState extends State<BookingManagementPage> {
                   bookingId: bookingId,
                   newStatus: 'Assigned',
                   customerEmail: customerEmail,
+                );
+
+                // Notify cleaner they have a new job
+                await _sendCleanerNotification(
+                  bookingId: bookingId,
+                  cleanerId: selectedCleanerId,
                 );
 
                 Navigator.pop(context);

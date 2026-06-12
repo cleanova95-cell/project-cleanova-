@@ -119,6 +119,7 @@ class _RegisterCleanerPageState
         'email': email,
         'phone': phone,
         'role': 'cleaner',
+        'fcmToken': '',
         'created_at': Timestamp.now(),
         'updated_at': Timestamp.now(),
       });

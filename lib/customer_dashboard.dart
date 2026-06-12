@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cleanova/notifications_page.dart';
+import 'package:cleanova/notification_service.dart';
+import 'dart:async';
 
 import 'login_page.dart';
 import 'booking_page.dart';
@@ -18,6 +20,8 @@ class CustomerDashboard extends StatefulWidget {
 class _CustomerDashboardState extends State<CustomerDashboard> {
 
   int currentIndex = 0;
+  StreamSubscription? _notificationSubscription;
+  DateTime? _lastNotificationTime;
 
   final List pages = [
     const HomePage(),
@@ -25,6 +29,100 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     const BookingHistoryPage(),
     const CustomerProfilePage(),
   ];
+
+  // ────────────────────────────────────���────────────────────────────
+  // Start listening for NEW notifications only (after dashboard loads)
+  // ─────────────────────────────────────────────────────────────────
+  void _startNotificationListener() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    _notificationSubscription?.cancel();
+
+    // Set baseline time to NOW - only show notifications created AFTER this moment
+    _lastNotificationTime = DateTime.now();
+
+    _notificationSubscription = NotificationService.listenToUserNotifications(user.uid)
+        .listen((notifications) {
+      if (!mounted) return;
+
+      // Filter only NEW notifications (created after dashboard loaded)
+      final newNotifications = notifications.where((notif) {
+        final createdAt = notif['createdAt'] as Timestamp?;
+        if (createdAt == null) return false;
+        final notifTime = createdAt.toDate();
+        return notifTime.isAfter(_lastNotificationTime!);
+      }).toList();
+
+      // Show popup for the latest new notification
+      if (newNotifications.isNotEmpty) {
+        final latest = newNotifications.first;
+        _lastNotificationTime = (latest['createdAt'] as Timestamp).toDate();
+
+        _showNotificationPopup(
+          title: latest['title'] ?? 'Notification',
+          message: latest['message'] ?? '',
+        );
+      }
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // Display notification as SnackBar popup
+  // ─────────────────────────────────────────────────────────────────
+  void _showNotificationPopup({
+    required String title,
+    required String message,
+  }) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              message,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF43A047),
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _startNotificationListener();
+  }
+
+  @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    super.dispose();
+  }
 
   Future<void> logoutUser() async {
 

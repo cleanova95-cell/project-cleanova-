@@ -89,6 +89,8 @@ class _LoginPageState extends State<LoginPage> {
         await NotificationService.saveTokenToFirestore();
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const CustomerDashboard()));
       } else if (role == 'cleaner') {
+        // Save/refresh FCM token every time the cleaner logs in
+        await NotificationService.saveTokenToFirestore();
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const CleanerDashboard()));
       } else if (role == 'admin') {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminDashboard()));

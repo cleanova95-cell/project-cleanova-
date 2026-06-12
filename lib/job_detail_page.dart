@@ -104,6 +104,50 @@ class _JobDetailPageState extends State<JobDetailPage> {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────
+  // Send notification to customer when cleaner updates status
+  // ─────────────────────────────────────────────────────────────────
+  Future<void> _sendNotification({
+    required String bookingId,
+    required String newStatus,
+    required String customerId,
+  }) async {
+    try {
+      final String message = _getNotificationMessage(newStatus);
+
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'userId': customerId,
+        'bookingId': bookingId,
+        'title': 'Cleaning Status Update',
+        'message': message,
+        'status': newStatus,
+        'isRead': false,
+        'createdAt': Timestamp.now(),
+      });
+
+      debugPrint('✅ Notification sent: $newStatus for booking $bookingId to user $customerId');
+    } catch (e) {
+      debugPrint('❌ Error sending notification: $e');
+    }
+  }
+
+  String _getNotificationMessage(String status) {
+    switch (status) {
+      case 'On The Way':
+        return 'Your cleaner is on the way to your location!';
+      case 'Arrived':
+        return 'Your cleaner has arrived at your location.';
+      case 'In Progress':
+        return 'Cleaning is currently in progress at your place.';
+      case 'Pending Verification':
+        return 'Your cleaner has submitted proof. Waiting for admin verification.';
+      case 'Completed':
+        return 'Your cleaning service has been completed. Thank you!';
+      default:
+        return 'Your booking status has been updated to $status.';
+    }
+  }
+
   // ── Handle button press ───────────────────────────────────────
   Future<void> _handleAction(
       BuildContext context, String status, String nextStatus) async {
@@ -124,6 +168,9 @@ class _JobDetailPageState extends State<JobDetailPage> {
       );
       return;
     }
+
+    // Get customer ID for notification
+    final customerId = doc.data()?['userId'] ?? '';
 
     if (status == 'In Progress') {
       // Require proof photo before completing
@@ -151,6 +198,15 @@ class _JobDetailPageState extends State<JobDetailPage> {
           'proofUploadedAt': Timestamp.now(),
           'updated_at': Timestamp.now(),
         });
+
+        // Send notification to customer
+        if (customerId.isNotEmpty) {
+          await _sendNotification(
+            bookingId: widget.bookingId,
+            newStatus: 'Pending Verification',
+            customerId: customerId,
+          );
+        }
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -182,6 +238,15 @@ class _JobDetailPageState extends State<JobDetailPage> {
       'status': nextStatus,
       'updated_at': Timestamp.now(),
     });
+
+    // Send notification to customer
+    if (customerId.isNotEmpty) {
+      await _sendNotification(
+        bookingId: widget.bookingId,
+        newStatus: nextStatus,
+        customerId: customerId,
+      );
+    }
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

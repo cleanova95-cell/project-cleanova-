@@ -88,4 +88,52 @@ class NotificationService {
           .update({'fcmToken': newToken});
     });
   }
+
+  // ─────────────────────────────────────────────────────────────────
+  // NEW: Listen to Firestore notifications for real-time popup
+  // ─────────────────────────────────────────────────────────────────
+  static Stream<List<Map<String, dynamic>>> listenToUserNotifications(String userId) {
+    return FirebaseFirestore.instance
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .limit(10)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+        .map((doc) => {
+      ...doc.data(),
+      'id': doc.id,
+    })
+        .toList());
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // NEW: Show local notification popup
+  // ─────────────────────────────────────────────────────────────────
+  static Future<void> showLocalNotification({
+    required String title,
+    required String message,
+  }) async {
+    await _localNotifications.show(
+      DateTime.now().hashCode,
+      title,
+      message,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channel.id,
+          _channel.name,
+          channelDescription: _channel.description,
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+          color: const Color(0xFF43A047),
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+    );
+  }
 }
