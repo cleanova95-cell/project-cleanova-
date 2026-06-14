@@ -33,6 +33,8 @@ dependencies:
   flutter_local_notifications: 18.0.0
 
 dev_dependencies:
+  flutter_launcher_icons: ^0.13.1
+
   flutter_test:
     sdk: flutter
 
@@ -46,3 +48,10 @@ flutter:
     - assets/image/deep1_icon.png
     - assets/image/house_icon.png
     - assets/image/office_icon.png
+    - assets/icon/icon.png
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  min_sdk_android: 21
