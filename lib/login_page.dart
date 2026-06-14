@@ -93,6 +93,8 @@ class _LoginPageState extends State<LoginPage> {
         await NotificationService.saveTokenToFirestore();
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const CleanerDashboard()));
       } else if (role == 'admin') {
+        // Keeps admin tokens updated in case you want to send them system alerts later
+        await NotificationService.saveTokenToFirestore();
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminDashboard()));
       }
 

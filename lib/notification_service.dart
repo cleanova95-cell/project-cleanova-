@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Handled in main.dart, but keeping this top-level declaration clean
+  print("Handling a background message: ${message.messageId}");
 }
 
 class NotificationService {
@@ -14,6 +16,7 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications =
   FlutterLocalNotificationsPlugin();
 
+  // NOTE: Ensure this channel ID matches what you put in main.dart and AndroidManifest.xml
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
     'cleanova_booking_channel',        // id
     'Booking Status Updates',          // name shown in phone settings
@@ -69,24 +72,40 @@ class NotificationService {
     });
   }
 
+  /// Fetches the current FCM device token and saves it securely to Firestore.
+  /// Also sets up a listener to auto-update Firestore if Firebase changes the token later.
   static Future<void> saveTokenToFirestore() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final token = await _fcm.getToken();
-    if (token == null) return;
+    try {
+      // 1. Get current token and upload
+      final token = await _fcm.getToken();
+      if (token != null) {
+        await _uploadTokenToFirestore(user.uid, token);
+      }
 
+      // 2. Setup live stream to listen for any mid-session token updates
+      _fcm.onTokenRefresh.listen((newToken) async {
+        final currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser != null) {
+          await _uploadTokenToFirestore(currentUser.uid, newToken);
+        }
+      });
+    } catch (e) {
+      print("Error managing FCM Token: $e");
+    }
+  }
+
+  /// Internal helper to execute the Firestore write safely
+  static Future<void> _uploadTokenToFirestore(String uid, String token) async {
     await FirebaseFirestore.instance
         .collection('users')
-        .doc(user.uid)
-        .update({'fcmToken': token});
-
-    _fcm.onTokenRefresh.listen((newToken) async {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update({'fcmToken': newToken});
-    });
+        .doc(uid)
+        .set({
+      'fcmToken': token,
+    }, SetOptions(merge: true)); // Using merge: true avoids crashing on fresh registrations
+    print('FCM Token securely linked to Firestore for user: $uid');
   }
 
   // ─────────────────────────────────────────────────────────────────

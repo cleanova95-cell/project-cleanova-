@@ -115,8 +115,22 @@ class _JobDetailPageState extends State<JobDetailPage> {
     try {
       final String message = _getNotificationMessage(newStatus);
 
+      // 1. Look up the customer's profile to get their FCM token
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(customerId)
+          .get();
+
+      String? targetToken;
+      if (userDoc.exists && userDoc.data() != null) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        targetToken = userData['fcmToken']; // Grab the token
+      }
+
+      // 2. Add the token to the notification document
       await FirebaseFirestore.instance.collection('notifications').add({
         'userId': customerId,
+        'fcmToken': targetToken, // THIS WAS THE MISSING PIECE
         'bookingId': bookingId,
         'title': 'Cleaning Status Update',
         'message': message,
@@ -125,7 +139,7 @@ class _JobDetailPageState extends State<JobDetailPage> {
         'createdAt': Timestamp.now(),
       });
 
-      debugPrint('✅ Notification sent: $newStatus for booking $bookingId to user $customerId');
+      debugPrint('✅ Notification sent with token: $newStatus');
     } catch (e) {
       debugPrint('❌ Error sending notification: $e');
     }

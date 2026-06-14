@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BookingDetailsPage extends StatelessWidget {
-
   final QueryDocumentSnapshot booking;
 
   const BookingDetailsPage({
@@ -10,29 +9,55 @@ class BookingDetailsPage extends StatelessWidget {
     required this.booking,
   });
 
-  Future<void> cancelBooking(
-      BuildContext context,
-      ) async {
+  Future<void> _sendNotification(String status) async {
+    try {
+      String customerEmail = booking['email'];
 
+      QuerySnapshot userQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: customerEmail)
+          .limit(1)
+          .get();
+
+      String? targetToken;
+
+      if (userQuery.docs.isNotEmpty) {
+        targetToken = userQuery.docs.first['fcmToken'];
+      }
+
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'email': customerEmail,
+        'fcmToken': targetToken,
+        'title': 'Booking Update',
+        'message': 'Your booking status has changed to: $status',
+        'bookingId': booking.id,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      print("Notification document created successfully with token!");
+
+    } catch (e) {
+      print("Error triggering notification: $e");
+    }
+  }
+
+  Future<void> cancelBooking(BuildContext context) async {
     await FirebaseFirestore.instance
         .collection('bookings')
         .doc(booking.id)
         .update({
-
       'status': 'Cancelled',
       'updated_at': Timestamp.now(),
-
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    // --- TRIGGER NOTIFICATION ON CANCELLATION ---
+    await _sendNotification('Cancelled');
 
+    ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text(
-          'Booking Cancelled Successfully',
-        ),
+        content: Text('Booking Cancelled Successfully'),
         backgroundColor: Colors.red,
       ),
-
     );
 
     Navigator.pop(context);
