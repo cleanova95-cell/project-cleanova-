@@ -43,6 +43,7 @@ class _CleanerPageState extends State<CleanerPage> {
       fetchedCleaners.add(data);
     }
 
+    if (!mounted) return;
     setState(() {
       cleaners = fetchedCleaners;
       isLoading = false;
@@ -92,8 +93,8 @@ class _CleanerPageState extends State<CleanerPage> {
             .httpsCallable('deleteUser');
         await callable.call({'userId': userId});
 
+        if (!mounted) return;
         setState(() => cleaners.removeWhere((c) => c['id'] == userId));
-
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Cleaner deleted successfully.'),
@@ -101,6 +102,7 @@ class _CleanerPageState extends State<CleanerPage> {
           ),
         );
       } on FirebaseFunctionsException catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Delete failed: ${e.message}'),
@@ -117,11 +119,13 @@ class _CleanerPageState extends State<CleanerPage> {
           .httpsCallable('updateUserEmail');
       await callable.call({'userId': userId, 'newEmail': newEmail});
 
+      if (!mounted) return;
       setState(() {
         final index = cleaners.indexWhere((c) => c['id'] == userId);
         if (index != -1) cleaners[index]['email'] = newEmail;
       });
     } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Email update failed: ${e.message}'),
@@ -131,7 +135,6 @@ class _CleanerPageState extends State<CleanerPage> {
     }
   }
 
-  // ─── Task 4: Edit cleaner (Name, Email, Phone only) ──────────────────────
   Future<void> _editCleaner(Map<String, dynamic> cleaner) async {
     final nameController = TextEditingController(
         text: cleaner['full_name'] ?? cleaner['name'] ?? '');
@@ -181,7 +184,10 @@ class _CleanerPageState extends State<CleanerPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () {
+              FocusScope.of(context).unfocus(); // ← fix: dismiss keyboard before closing
+              Navigator.pop(context, false);
+            },
             child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
@@ -190,7 +196,10 @@ class _CleanerPageState extends State<CleanerPage> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () {
+              FocusScope.of(context).unfocus(); // ← fix: dismiss keyboard before closing
+              Navigator.pop(context, true);
+            },
             child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -273,6 +282,7 @@ class _CleanerPageState extends State<CleanerPage> {
         await _updateEmail(cleaner['id'], newEmail);
       }
 
+      if (!mounted) return;
       setState(() {
         final index = cleaners.indexWhere((c) => c['id'] == cleaner['id']);
         if (index != -1) {
@@ -293,7 +303,6 @@ class _CleanerPageState extends State<CleanerPage> {
     emailController.dispose();
     phoneController.dispose();
   }
-
 
   Widget _confirmRow(String label, String value) {
     return Row(
@@ -346,14 +355,12 @@ class _CleanerPageState extends State<CleanerPage> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1FFF3),
       body: Column(
         children: [
-
           Container(
             width: double.infinity,
             padding: EdgeInsets.fromLTRB(
@@ -396,7 +403,6 @@ class _CleanerPageState extends State<CleanerPage> {
           ),
 
           const SizedBox(height: 10),
-
 
           isLoading
               ? const Expanded(
@@ -443,7 +449,6 @@ class _CleanerPageState extends State<CleanerPage> {
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-
                           CircleAvatar(
                             radius: 28,
                             backgroundColor:
@@ -460,8 +465,6 @@ class _CleanerPageState extends State<CleanerPage> {
                             ),
                           ),
                           const SizedBox(width: 14),
-
-
                           Expanded(
                             child: Column(
                               crossAxisAlignment:
@@ -489,7 +492,6 @@ class _CleanerPageState extends State<CleanerPage> {
                                       color: Colors.grey),
                                 ),
                                 const SizedBox(height: 5),
-
                                 Row(
                                   children: [
                                     Icon(
@@ -511,8 +513,6 @@ class _CleanerPageState extends State<CleanerPage> {
                               ],
                             ),
                           ),
-
-                          // Action buttons
                           IconButton(
                             onPressed: () => _editCleaner(cleaner),
                             icon: Icon(Icons.edit,
