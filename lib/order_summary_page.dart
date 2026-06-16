@@ -6,7 +6,7 @@ class OrderSummaryPage extends StatelessWidget {
   final String size;
   final String address;
   final DateTime bookingDate;
-  final int totalPrice;
+  final double totalPrice; // ✅ changed from int to double
 
   const OrderSummaryPage({
     super.key,
@@ -16,6 +16,15 @@ class OrderSummaryPage extends StatelessWidget {
     required this.bookingDate,
     required this.totalPrice,
   });
+
+  // Formats price cleanly:
+  //   130.0  → "130"
+  //   130.99 → "130.99"
+  String _formatPrice(double price) {
+    return price % 1 == 0
+        ? price.toInt().toString()
+        : price.toStringAsFixed(2);
+  }
 
   IconData _serviceIcon() {
     switch (service) {
@@ -40,7 +49,6 @@ class OrderSummaryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1FFF3),
-
 
       appBar: AppBar(
         elevation: 0,
@@ -90,7 +98,6 @@ class OrderSummaryPage extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  // Icon circle
                   Container(
                     width: 80,
                     height: 80,
@@ -172,7 +179,6 @@ class OrderSummaryPage extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _SectionCard(
@@ -219,9 +225,13 @@ class OrderSummaryPage extends StatelessWidget {
                 icon: Icons.payments_outlined,
                 child: Column(
                   children: [
-                    _PriceRow(label: '$service ($size)', amount: 'RM $totalPrice'),
+                    // ✅ formatted price display
+                    _PriceRow(
+                      label: '$service ($size)',
+                      amount: 'RM ${_formatPrice(totalPrice)}',
+                    ),
                     _divider(),
-                    _PriceRow(label: 'Service Fee', amount: 'RM 0'),
+                    const _PriceRow(label: 'Service Fee', amount: 'RM 0'),
                     _divider(),
                     const SizedBox(height: 4),
                     Row(
@@ -247,7 +257,8 @@ class OrderSummaryPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            'RM $totalPrice',
+                            // ✅ formatted price display
+                            'RM ${_formatPrice(totalPrice)}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 17,
@@ -273,16 +284,16 @@ class OrderSummaryPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: const Color(0xFFA5D6A7)),
                 ),
-                child: Row(
+                child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.info_outline,
                       color: Color(0xFF43A047),
                       size: 20,
                     ),
-                    const SizedBox(width: 10),
-                    const Expanded(
+                    SizedBox(width: 10),
+                    Expanded(
                       child: Text(
                         'Please review your booking details before proceeding to payment. Once confirmed, our team will be assigned to your booking.',
                         style: TextStyle(
@@ -314,7 +325,7 @@ class OrderSummaryPage extends StatelessWidget {
                           size: size,
                           address: address,
                           bookingDate: bookingDate,
-                          totalPrice: totalPrice,
+                          totalPrice: totalPrice, // ✅ now double — update PaymentPage too
                         ),
                       ),
                     );
@@ -436,7 +447,6 @@ class _SectionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Card header
             Row(
               children: [
                 Container(

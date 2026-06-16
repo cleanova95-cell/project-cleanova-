@@ -3,8 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cleanova/order_summary_page.dart';
 
-
-
 class BookingPage extends StatefulWidget {
   const BookingPage({super.key});
 
@@ -13,7 +11,6 @@ class BookingPage extends StatefulWidget {
 }
 
 class _BookingPageState extends State<BookingPage> {
-
   String selectedService = 'House Cleaning';
   String selectedSize = 'Small';
 
@@ -30,6 +27,15 @@ class _BookingPageState extends State<BookingPage> {
     _fetchPrices();
   }
 
+  // Formats a double price cleanly:
+  //   130.0  → "130"
+  //   130.99 → "130.99"
+  String _formatPrice(double price) {
+    return price % 1 == 0
+        ? price.toInt().toString()
+        : price.toStringAsFixed(2);
+  }
+
   Future<void> _fetchPrices() async {
     QuerySnapshot snapshot = await FirebaseFirestore.instance
         .collection('service_prices')
@@ -39,13 +45,16 @@ class _BookingPageState extends State<BookingPage> {
 
     for (var doc in snapshot.docs) {
       final data = doc.data() as Map<String, dynamic>;
+
+      // ✅ Store as double so decimal prices like 130.99 are preserved
       loadedPrices[doc.id] = {
-        'Small': data['smallPrice'] ?? 0,
-        'Medium': data['mediumPrice'] ?? 0,
-        'Large': data['largePrice'] ?? 0,
+        'Small':  (data['smallPrice']  as num? ?? 0).toDouble(),
+        'Medium': (data['mediumPrice'] as num? ?? 0).toDouble(),
+        'Large':  (data['largePrice']  as num? ?? 0).toDouble(),
       };
     }
 
+    if (!mounted) return;
     setState(() {
       prices = loadedPrices;
       isLoadingPrices = false;
@@ -67,7 +76,6 @@ class _BookingPageState extends State<BookingPage> {
     }
   }
 
-  // ── UBAH SINI SAHAJA ────────────────────────────────────────
   Future<void> saveBooking() async {
     if (selectedDate == null || addressController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -79,9 +87,9 @@ class _BookingPageState extends State<BookingPage> {
       return;
     }
 
-    int totalPrice = 0;
+    double totalPrice = 0;
     if (prices.isNotEmpty && prices[selectedService] != null) {
-      totalPrice = prices[selectedService][selectedSize] ?? 0;
+      totalPrice = prices[selectedService][selectedSize] ?? 0.0;
     }
 
     Navigator.push(
@@ -92,7 +100,7 @@ class _BookingPageState extends State<BookingPage> {
           size: selectedSize,
           address: addressController.text,
           bookingDate: selectedDate!,
-          totalPrice: totalPrice,
+          totalPrice: totalPrice,  // ← now double; update OrderSummaryPage to accept double too
         ),
       ),
     );
@@ -100,10 +108,9 @@ class _BookingPageState extends State<BookingPage> {
 
   @override
   Widget build(BuildContext context) {
-
-    int totalPrice = 0;
+    double totalPrice = 0;
     if (prices.isNotEmpty && prices[selectedService] != null) {
-      totalPrice = prices[selectedService][selectedSize] ?? 0;
+      totalPrice = prices[selectedService][selectedSize] ?? 0.0;
     }
 
     return Scaffold(
@@ -132,7 +139,6 @@ class _BookingPageState extends State<BookingPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             const Text(
               'Select Service',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -186,13 +192,18 @@ class _BookingPageState extends State<BookingPage> {
                         title: Row(
                           children: [
                             Icon(
-                              isOffice ? Icons.business_outlined : Icons.home_outlined,
+                              isOffice
+                                  ? Icons.business_outlined
+                                  : Icons.home_outlined,
                               color: const Color(0xFF43A047),
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              isOffice ? 'Office Size Guide' : 'Home Size Guide',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              isOffice
+                                  ? 'Office Size Guide'
+                                  : 'Home Size Guide',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -205,7 +216,8 @@ class _BookingPageState extends State<BookingPage> {
                                 isOffice
                                     ? 'Not sure what size your office is? Use this guide:'
                                     : 'Not sure what size your home is? Use this guide:',
-                                style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                style: const TextStyle(
+                                    color: Colors.grey, fontSize: 13),
                               ),
                               const SizedBox(height: 16),
                               if (isOffice) ...[
@@ -385,13 +397,14 @@ class _BookingPageState extends State<BookingPage> {
                     children: [
                       Text(
                         'Total Price',
-                        style: TextStyle(color: Colors.white70, fontSize: 16),
+                        style: TextStyle(
+                            color: Colors.white70, fontSize: 16),
                       ),
                       SizedBox(height: 8),
                     ],
                   ),
                   Text(
-                    'RM$totalPrice',
+                    'RM ${_formatPrice(totalPrice)}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 30,
@@ -429,7 +442,6 @@ class _BookingPageState extends State<BookingPage> {
             ),
 
             const SizedBox(height: 30),
-
           ],
         ),
       ),
@@ -470,7 +482,8 @@ class _BookingPageState extends State<BookingPage> {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
             GestureDetector(

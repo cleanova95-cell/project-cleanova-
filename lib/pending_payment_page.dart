@@ -10,7 +10,7 @@ class PendingPaymentPage extends StatefulWidget {
   final String size;
   final String address;
   final DateTime bookingDate;
-  final int totalPrice;
+  final double totalPrice;
 
   const PendingPaymentPage({
     super.key,

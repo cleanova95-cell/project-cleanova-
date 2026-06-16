@@ -114,7 +114,7 @@ class BookingHistoryPage extends StatelessWidget {
 
                     final service = data['service'] ?? 'No Service';
                     final size = data['size'] ?? '-';
-                    final price = data['price'] ?? 0;
+                    final double price = (data['price'] as num?)?.toDouble() ?? 0.0;
                     final status = (data['status'] ?? 'Pending').toString();
                     final address = data['address'] ?? '-';
                     final paymentMethod =
@@ -363,9 +363,7 @@ class BookingHistoryPage extends StatelessWidget {
                                           size: size,
                                           address: address,
                                           bookingDate: date,
-                                          totalPrice: price is int
-                                              ? price
-                                              : (price as num).toInt(),
+                                          totalPrice: price,
                                           paymentMethod: paymentMethod,
                                         ),
                                       ),
@@ -411,9 +409,7 @@ class BookingHistoryPage extends StatelessWidget {
                                           size: size,
                                           address: address,
                                           bookingDate: date,
-                                          totalPrice: price is int
-                                              ? price
-                                              : (price as num).toInt(),
+                                          totalPrice: price,
                                         ),
                                       ),
                                     );

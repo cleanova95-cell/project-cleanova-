@@ -5,7 +5,7 @@ class ReceiptPage extends StatelessWidget {
   final String size;
   final String address;
   final DateTime bookingDate;
-  final int totalPrice;
+  final double totalPrice;
   final String paymentMethod;
 
   const ReceiptPage({

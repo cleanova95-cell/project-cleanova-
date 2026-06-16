@@ -12,7 +12,7 @@ class PaymentPage extends StatefulWidget {
   final String size;
   final String address;
   final DateTime bookingDate;
-  final int totalPrice;
+  final double totalPrice;
 
   const PaymentPage({
     super.key,
@@ -34,6 +34,13 @@ class _PaymentPageState extends State<PaymentPage> {
   String selectedMethod = 'card';
   bool isProcessing = false;
 
+  // ✅ Formats price cleanly: 130.0 → "130", 130.99 → "130.99"
+  String _formatPrice(double price) {
+    return price % 1 == 0
+        ? price.toInt().toString()
+        : price.toStringAsFixed(2);
+  }
+
   Future<String?> _createPaymentIntent() async {
     try {
       final response = await http.post(
@@ -43,7 +50,7 @@ class _PaymentPageState extends State<PaymentPage> {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: {
-          'amount': (widget.totalPrice * 100).toString(),
+          'amount': (widget.totalPrice * 100).round().toString(), // ✅ round to avoid float issues e.g. 13099.999
           'currency': 'myr',
           'payment_method_types[]': 'card',
           'description': '${widget.service} - ${widget.size}',
@@ -68,7 +75,7 @@ class _PaymentPageState extends State<PaymentPage> {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: {
-          'amount': (widget.totalPrice * 100).toString(),
+          'amount': (widget.totalPrice * 100).round().toString(), // ✅ same fix
           'currency': 'myr',
           'payment_method_types[]': 'grabpay',
           'description': '${widget.service} - ${widget.size}',
@@ -328,7 +335,7 @@ class _PaymentPageState extends State<PaymentPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'RM ${widget.totalPrice}',
+                    'RM ${_formatPrice(widget.totalPrice)}', // ✅ formatted
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 42,
@@ -528,7 +535,7 @@ class _PaymentPageState extends State<PaymentPage> {
                         Text(
                           selectedMethod == 'banktransfer'
                               ? 'Proceed to Bank Transfer'
-                              : 'Pay RM ${widget.totalPrice}',
+                              : 'Pay RM ${_formatPrice(widget.totalPrice)}', // ✅ formatted
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
